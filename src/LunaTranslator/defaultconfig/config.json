@@ -1150,6 +1150,8 @@
                 "thinking.type.use": false,
                 "user_user_prompt_1": "",
                 "use_user_user_prompt": false,
+                "use_ref_dict": false,
+                "ref_dict": "",
                 "s": "",
                 "s2": "",
                 "customparams": []
@@ -1194,11 +1196,18 @@
                     "rank": -1
                 },
                 "user_user_prompt_1": {
-                    "placeholder": "{sentence}\nword:{word}",
+                    "placeholder": "{sentence}\nword:{word}\n{dict}",
                     "type": "multiline",
                     "name": "自定义_user message",
                     "refswitch": "use_user_user_prompt",
                     "rank": 5.1
+                },
+                "ref_dict": {
+                    "name": "同时查询辞书",
+                    "type": "custom",
+                    "function": "ref_dict_combo",
+                    "refswitch": "use_ref_dict",
+                    "rank": 5.11
                 },
                 "s": {
                     "type": "split",
@@ -1258,7 +1267,7 @@
                     "refswitch": "使用自定义promt",
                     "name": "自定义_system prompt",
                     "rank": 5,
-                    "placeholder": "You are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation, etymology, synonyms, antonyms, and example sentences of {srclang} words. \nYou should be able to handle queries in multiple languages and provide in-depth information or simple definitions according to user needs. You should reply in {tgtlang}.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed."
+                    "placeholder": "You are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation, etymology, synonyms, antonyms, and example sentences of {srclang} words. \nYou should be able to handle queries in multiple languages and provide in-depth information or simple definitions according to user needs. You should reply in {tgtlang}.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed.\nThe user may also provide dictionary reference text. If provided, use it as the primary reference for pronunciation, pitch accent, and definitions, but it may be incomplete or incorrect, so do not follow it blindly."
                 },
                 "Temperature": {
                     "refswitch": "Temperature.use",
