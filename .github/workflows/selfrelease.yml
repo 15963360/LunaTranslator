@@ -30,22 +30,26 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
         with:
-          path: build
+          name: LunaTranslator_x64
+          path: build/LunaTranslator_x64
       - name: Pack zip
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path packed | Out-Null
-          Get-ChildItem build -Directory | ForEach-Object {
-            $zip = Join-Path (Resolve-Path packed) ($_.Name + ".zip")
-            if (Get-Command 7z -ErrorAction SilentlyContinue) {
-              & 7z a -m0=Deflate -mx9 $zip $_.FullName
-            } elseif (Test-Path "C:\Program Files\7-Zip\7z.exe") {
-              & "C:\Program Files\7-Zip\7z.exe" a -m0=Deflate -mx9 $zip $_.FullName
-            } else {
-              tar -a -c -f $zip -C $_.Parent.FullName $_.Name
-            }
+          $src = "build"
+          if (Test-Path "build/LunaTranslator_x64") {
+            $src = "build/LunaTranslator_x64"
           }
+          if (-not (Test-Path "$src/LunaTranslator.exe")) {
+            throw "LunaTranslator.exe missing under $src"
+          }
+          $stage = "LunaTranslator_x64"
+          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+          Move-Item $src $stage
+          $zip = Join-Path (Resolve-Path packed) "LunaTranslator_x64.zip"
+          tar -a -c -f $zip $stage
           Get-ChildItem packed
+          tar -tf $zip | Select-Object -First 20
       - name: Load version
         id: loadversion
         run: python src/scripts/build_lunatranslator.py loadversion | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
