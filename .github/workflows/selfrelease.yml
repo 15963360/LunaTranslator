@@ -1,0 +1,66 @@
+name: Self Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13.13"
+          architecture: x64
+      - run: python src/scripts/build_lunatranslator.py cpp x64 win10
+      - run: python src/scripts/build_lunatranslator.py hook x64 win10
+      - run: python src/scripts/build_lunatranslator.py pyrt x64 3.13.13 win10
+      - run: python src/scripts/build_lunatranslator.py merge x64 win10
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LunaTranslator_x64
+          path: src/build/LunaTranslator_x64
+
+  release:
+    runs-on: windows-latest
+    needs: [build]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          path: build
+      - name: Pack zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path packed | Out-Null
+          Get-ChildItem build -Directory | ForEach-Object {
+            $zip = Join-Path (Resolve-Path packed) ($_.Name + ".zip")
+            if (Get-Command 7z -ErrorAction SilentlyContinue) {
+              & 7z a -m0=Deflate -mx9 $zip $_.FullName
+            } elseif (Test-Path "C:\Program Files\7-Zip\7z.exe") {
+              & "C:\Program Files\7-Zip\7z.exe" a -m0=Deflate -mx9 $zip $_.FullName
+            } else {
+              tar -a -c -f $zip -C $_.Parent.FullName $_.Name
+            }
+          }
+          Get-ChildItem packed
+      - name: Load version
+        id: loadversion
+        run: python src/scripts/build_lunatranslator.py loadversion | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.loadversion.outputs.version }}-self
+          name: ${{ steps.loadversion.outputs.version }} Windows (self)
+          body: |
+            非官方自用构建，未使用 SignPath 签名。
+
+            基于 fork 修改：大模型查词可同时查询已启用辞书作为参考。
+
+            请使用 `LunaTranslator_x64.zip`（Windows 10/11 64 位）。解压后运行 `LunaTranslator.exe`。
+            需要 HOOK 游戏时使用 `LunaTranslator_admin.exe`。
+          files: packed/*.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
