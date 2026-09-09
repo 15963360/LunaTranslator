@@ -3,7 +3,6 @@
 int createprocesshelper(int argc, wchar_t *argv[]);
 int shellexecutehelper(int argc, wchar_t *argv[]);
 int dllinjectwmain(int argc, wchar_t *argv[]);
-int updatewmain(int argc, wchar_t *wargv[]);
 bool checkisapatch();
 int voiceroid_aivoicewmain(int argc, wchar_t *argv[]);
 int vadwmain(int argc, wchar_t *argv[]);
@@ -66,7 +65,6 @@ int wmain(int argc, wchar_t *argv[])
         {L"shellexecutehelper", shellexecutehelper},
         {L"dllinject", dllinjectwmain},
         {L"listpm", listprocessmodule},
-        {L"update", updatewmain},
         {L"voiceroid_aivoice", voiceroid_aivoicewmain},
         {L"vad", vadwmain},
 #ifndef _WIN64

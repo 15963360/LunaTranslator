@@ -1,6 +1,6 @@
 from qtsymbols import *
 import functools, re
-from myutils.config import globalconfig, static_data, _TR, dynamiclink
+from myutils.config import globalconfig, static_data, _TR
 from myutils.wrapper import threader
 from myutils.utils import makehtml, getlanguse
 import requests, importlib
@@ -8,39 +8,16 @@ import gobject
 import os, NativeUtils
 from traceback import print_exc
 from gui.usefulwidget import (
-    D_getsimpleswitch,
     makescrollgrid,
     createfoldgrid,
     SuperCombo,
-    getsmalllabel,
-    getboxlayout,
     NQGroupBox,
     LinkLabel,
     SClickableLabel,
-    VisLFormLayout,
     tabadd_lazy,
 )
 from gui.setting.setting_year import yearsummary
 from language import UILanguages, Languages
-from myutils.updater import versionchecktask
-
-
-def createversionlabel():
-
-    versionlabel = LinkLabel()
-    versionlabel.setOpenExternalLinks(False)
-    versionlabel.linkActivated.connect(lambda _: os.startfile(dynamiclink("ChangeLog")))
-
-    gobject.base.connectsignal(
-        gobject.base.versiontextsignal,
-        functools.partial(versionlabelmaybesettext, versionlabel),
-    )
-    return versionlabel
-
-
-def versionlabelmaybesettext(versionlabel: QLabel, x):
-    x = '<a href="fuck">{}</a>'.format(x)
-    versionlabel.setText(x)
 
 
 def delayloadlinks(key):
@@ -94,50 +71,6 @@ def changeUIlanguage(_):
         gobject.base.textsource.setlang()
     except:
         pass
-
-
-def updatexx(self):
-    return getboxlayout(
-        [
-            D_getsimpleswitch(
-                globalconfig,
-                "autoupdate",
-                callback=lambda _: (
-                    versionchecktask.put(_),
-                    (
-                        self.aboutlayout.layout().setRowVisible(2, False)
-                        if not _
-                        else ""
-                    ),
-                ),
-                default=True,
-            ),
-            getsmalllabel(""),
-            getsmalllabel("最新版本"),
-            createversionlabel,
-            "",
-        ]
-    )
-
-
-def progress___(self):
-
-    downloadprogress = QProgressBar(self)
-    downloadprogress.setRange(0, 10000)
-    downloadprogress.setAlignment(
-        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-    )
-    self.downloadprogress = downloadprogress
-    return downloadprogress
-
-
-def _progresssignal4(
-    updatelayout: VisLFormLayout, downloadprogress: QProgressBar, text, val
-):
-    downloadprogress.setValue(val)
-    downloadprogress.setFormat(text)
-    if (val or text) and globalconfig.get("autoupdate", True):
-        updatelayout.setRowVisible(2, True)
 
 
 class MDLabel(LinkLabel):
@@ -342,11 +275,8 @@ def setTab_about(self: QWidget, basel):
                 dict(
                     name="aboutlayout",
                     parent=self,
-                    hiderows=[2],
                     grid=[
                         ["UI语言", __delayloadlangs],
-                        ["自动更新", functools.partial(updatexx, self)],
-                        [functools.partial(progress___, self)],
                     ],
                 ),
             ],
@@ -404,10 +334,4 @@ def setTab_about(self: QWidget, basel):
             # [getboxlayout([D_getIconButton(____, icon="fa.calendar"), ""])],
         ],
         basel,
-    )
-    gobject.base.connectsignal(
-        gobject.base.progresssignal4,
-        functools.partial(
-            _progresssignal4, self.aboutlayout.layout(), self.downloadprogress
-        ),
     )

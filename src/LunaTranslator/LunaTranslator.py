@@ -75,7 +75,6 @@ from tts.basettsclass import TTSbase
 from cishu.cishubase import cishubase
 from translator.basetranslator import basetrans
 from textio.textoutput.outputerbase import Base as outputerbase
-from myutils.updater import versioncheckthread
 from gui.qevent import DarkLightChangedEvent
 from gui.setting.translate import autostartllamacpp
 from collections import OrderedDict
@@ -135,8 +134,6 @@ class BASEOBJECT(QObject):
     thresholdsett1 = pyqtSignal(str)
     progresssignal2 = pyqtSignal(str, int)
     progresssignal3 = pyqtSignal(int)
-    progresssignal4 = pyqtSignal(str, int)
-    versiontextsignal = pyqtSignal(str)
     clipboardcallback = pyqtSignal(bool, str)
     hover_search_word = pyqtSignal(dict)
     settin_ui_showsignal = pyqtSignal()
@@ -218,8 +215,6 @@ class BASEOBJECT(QObject):
         self.setstylesheetsignal.connect(self.setcommonstylesheet)
         self.__connect_internal(self.progresssignal2)
         self.__connect_internal(self.progresssignal3)
-        self.__connect_internal(self.progresssignal4)
-        self.__connect_internal(self.versiontextsignal)
         self.__connect_internal(self.showandsolvesig)
         self.createimageviewsig.connect(self.createimageview)
         self.RichMessageBox.connect(
@@ -273,11 +268,9 @@ class BASEOBJECT(QObject):
     def __init__(self) -> None:
         super().__init__()
         self.initsignals()
-        self.willshutdown = False
         self.history = HistoryHelper()
         self.currentisdark = None
         self.currentmica = None
-        self.update_avalable = False
         self.translators: "dict[str, basetrans]" = {}
         self.cishus: "dict[str, cishubase]" = {}
         self.specialreaders: "dict[object, TTSbase]" = {}
@@ -305,7 +298,6 @@ class BASEOBJECT(QObject):
         self.__hwnd = None
         self.gameuid = 0
         self.autoswitchgameuid = True
-        self.istriggertoupdate = False
         self.service = TCPService()
         registerall(self.service)
 
@@ -1563,10 +1555,6 @@ class BASEOBJECT(QObject):
     def __trayclicked(self):
         self.trayclicked()
 
-    def triggertoupdate(self):
-        self.istriggertoupdate = True
-        NativeUtils.dispatchcloseevent()
-
     def leftclicktray(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.translation_ui.showhideui()
@@ -1753,7 +1741,6 @@ class BASEOBJECT(QObject):
         self.somedatabase = somedatabase()
         NativeUtils.CreateUrlProtocol(getcurrexe())
         self.serviceinit()
-        versioncheckthread()
         autostartllamacpp()
 
     @property
@@ -1800,7 +1787,6 @@ class BASEOBJECT(QObject):
         elif msg == 5:
             magpie_config.update(json.loads(cast(value2, c_wchar_p).value))
         elif msg == -1:
-            self.willshutdown = True
             _ = NativeUtils.SimpleCreateMutex("LUNASAVECONFIGUPDATE")
             if windows.GetLastError() != windows.ERROR_ALREADY_EXISTS:
                 saveallconfig()

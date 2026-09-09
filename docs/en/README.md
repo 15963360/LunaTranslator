@@ -42,9 +42,7 @@ But please do not put the software in special paths such as **C:\Program Files**
 | - | - | - |
 | start in normal mode | start with administrator privileges, which is required for hooking some games; use this only when necessary, otherwise start in normal mode | display a command-line window |
 
-Updates are performed automatically by default. If automatic update fails, you can update manually.
-
-To update manually, simply download the new version and extract it to overwrite the previous directory.
+To update, simply download the new version and extract it to overwrite the previous directory.
 
 If you want to delete and re-download, be careful not to delete the userconfig folder, otherwise you will lose your previous settings!!!
 

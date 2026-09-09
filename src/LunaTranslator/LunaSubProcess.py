@@ -447,14 +447,6 @@ class LunaSubProcess:
         )
 
     @staticmethod
-    def update(exe1, istriggertoupdate, found, pid, b64):
-        subprocess.Popen(
-            r"{} update {} {} {} {}".format(
-                exe1, int(istriggertoupdate), found, pid, b64
-            )
-        )
-
-    @staticmethod
     def neospeechlist():
         exe = _exepath(False)
         cachefname = gobject.gettempdir("{}.txt".format(uuid.uuid4()))

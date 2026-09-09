@@ -2,15 +2,6 @@
 project(LunaSubprocess)
 
 include(FetchContent)
-FetchContent_Declare(cpp_base64
-	GIT_REPOSITORY https://github.com/ReneNyffenegger/cpp-base64
-	GIT_TAG master
-	GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(cpp_base64)
-add_library(base64 INTERFACE)
-target_include_directories(base64 INTERFACE ${cpp_base64_SOURCE_DIR})
-target_sources(base64 INTERFACE ${cpp_base64_SOURCE_DIR}/base64.cpp)
 
 if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
 	# 使用<=1.41.1版本，否则和系统的可能不兼容。
@@ -31,7 +22,7 @@ endif()
 
 
 set(LunaSubprocess_common
-	LunaSubprocess.cpp dllinject.cpp update.cpp ${versioninfo}
+	LunaSubprocess.cpp dllinject.cpp ${versioninfo}
 	../NativeUtils/loopbackaudio/LoopbackCapture.cpp ../NativeUtils/loopbackaudio/LoopbackTranditional.cpp)
 
 
@@ -65,7 +56,7 @@ endif()
 if(NOT WINXP)
 	target_link_libraries(LunaSubprocess PRIVATE Mmdevapi)
 endif()
-target_link_libraries(LunaSubprocess PRIVATE FileLocksmith base64)
+target_link_libraries(LunaSubprocess PRIVATE FileLocksmith)
 target_link_libraries(LunaSubprocess PRIVATE delayimp Dbghelp)
 target_link_options(LunaSubprocess PRIVATE "/DELAYLOAD:Dbghelp.dll")
 target_link_options(LunaSubprocess PRIVATE "/DELAYLOAD:MMDevAPI.dll")

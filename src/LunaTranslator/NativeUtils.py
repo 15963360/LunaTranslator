@@ -289,7 +289,6 @@ globalmessagelistener.argtypes = (
     WinEventHookCALLBACK_t,
     WindowMessageCallback_t,
 )
-dispatchcloseevent = utilsdll.dispatchcloseevent
 
 SetWindowExtendFrame = utilsdll.SetWindowExtendFrame
 SetWindowExtendFrame.argtypes = (HWND,)

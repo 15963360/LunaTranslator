@@ -28,7 +28,6 @@ from myutils.utils import (
     str2rgba,
 )
 from myutils.hwnd import mouseselectwindow, grabwindow, getExeIcon, getcurrexe
-from myutils.updater import doupdate
 from gui.qevent import TransparentChangedEvent
 from gui.dialog_memory import dialog_memory
 from gui.rendertext.texttype import TextType, SpecialColor
@@ -1022,12 +1021,6 @@ class TranslatorWindow(resizableframeless):
                     print_exc()
                 break
 
-    def cleanupdater(self):
-        try:
-            shutil.rmtree("files_old")
-        except:
-            pass
-
     def __makeMDlinkclick(self, text: str) -> "list[WordSegResult]":
         if "\n" in text:
             __ = []
@@ -1078,7 +1071,6 @@ class TranslatorWindow(resizableframeless):
         if not self.firstshow:
             return self.enterfunction()
         self.firstshow = False
-        self.cleanupdater()
 
         self.mousetransparent_check()
         self.adjustbuttons()
@@ -1657,8 +1649,6 @@ class TranslatorWindow(resizableframeless):
                         "\n\n".join(errors),
                     )
                 self.tryremoveuseless()
-                if not gobject.base.willshutdown:
-                    doupdate()
         except:
             print_exc()
 
