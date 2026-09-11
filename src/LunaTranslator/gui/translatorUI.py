@@ -408,6 +408,14 @@ class TranslatorWindow(resizableframeless):
             ),
             ("history", lambda: gobject.base.transhis.showsignal.emit()),
             (
+                "history_prev",
+                lambda: gobject.base.switchhistory(-1),
+            ),
+            (
+                "history_next",
+                lambda: gobject.base.switchhistory(1),
+            ),
+            (
                 "noundict",
                 buttonfunctions(
                     clicked=lambda: loadpostsettingwindowmethod_maybe(

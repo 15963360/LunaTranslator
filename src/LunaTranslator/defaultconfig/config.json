@@ -296,6 +296,8 @@
             "edittrans",
             "showraw",
             "history",
+            "history_prev",
+            "history_next",
             "noundict",
             "fix",
             "langdu",
@@ -521,6 +523,18 @@
                 "use": true,
                 "tip": "显示/隐藏历史文本",
                 "icon": "fa.history",
+                "align": 2
+            },
+            "history_prev": {
+                "use": true,
+                "tip": "上一句",
+                "icon": "fa.chevron-left",
+                "align": 2
+            },
+            "history_next": {
+                "use": true,
+                "tip": "下一句",
+                "icon": "fa.chevron-right",
                 "align": 2
             },
             "gamepad_new": {

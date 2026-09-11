@@ -240,6 +240,9 @@ class BASEOBJECT(QObject):
     def __wheelhistory(self, offset: int):
         if not globalconfig.get("enable_wheel_history", True):
             return
+        self.switchhistory(offset)
+
+    def switchhistory(self, offset: int):
         hist = self.history.get_offset(offset)
         if not hist:
             return
