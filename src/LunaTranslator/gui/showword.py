@@ -2448,6 +2448,11 @@ class searchwordW(closeashidewindow):
         word = word.strip()
         if not word:
             return
+        if not sentence:
+            # 右键重新查词等场景没有带句子，沿用之前的句子或当前显示的句子，避免丢失
+            sentence = (
+                self.maybeusecachesentence() or gobject.base.currenttext or None
+            )
         self.__parsehistory(word, append, sentence, isfromhist)
         if globalconfig.get("is_search_word_auto_tts", False):
             gobject.base.read_text(self.searchtext.text())
