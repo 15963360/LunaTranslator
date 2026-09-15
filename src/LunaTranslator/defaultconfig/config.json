@@ -1166,6 +1166,9 @@
                 "use_user_user_prompt": false,
                 "use_ref_dict": false,
                 "ref_dict": "",
+                "附带前文句子数": 0,
+                "use_ctx_prompt": true,
+                "ctx_prompt": "",
                 "s": "",
                 "s2": "",
                 "customparams": []
@@ -1210,7 +1213,7 @@
                     "rank": -1
                 },
                 "user_user_prompt_1": {
-                    "placeholder": "{sentence}\nword:{word}\n{dict}",
+                    "placeholder": "可用引用（未写出的引用会自动补充，保存时也会检查）:\n{word} = 要查询的单词\n{sentence} = 单词所在的当前句子\n{dict} = 辞书查询结果（启用「同时查询辞书」时）\n{context} = 当前句子之前的前文句子（「附带前文句子数」>0 时）\n示例:\n{sentence}\nword:{word}\n{dict}",
                     "type": "multiline",
                     "name": "自定义_user message",
                     "refswitch": "use_user_user_prompt",
@@ -1223,13 +1226,27 @@
                     "refswitch": "use_ref_dict",
                     "rank": 5.11
                 },
+                "附带前文句子数": {
+                    "name": "附带前文句子数",
+                    "type": "intspin",
+                    "min": 0,
+                    "max": 10,
+                    "rank": 5.115
+                },
+                "ctx_prompt": {
+                    "type": "multiline",
+                    "refswitch": "use_ctx_prompt",
+                    "name": "上下文_system prompt",
+                    "rank": 5.12,
+                    "placeholder": "「附带前文句子数」>0 时追加到 system prompt 末尾，说明 {context} 的用途。留空使用默认值:\nThe user message may include several sentences that appeared before the current sentence, provided as context. The context sentences are for reference only: use them to determine which meaning of the word is appropriate in this situation, but do not translate or explain the context sentences themselves."
+                },
                 "s": {
                     "type": "split",
                     "rank": 2.5
                 },
                 "s2": {
                     "type": "split",
-                    "rank": 5.12
+                    "rank": 5.3
                 },
                 "API接口地址": {
                     "rank": 0,
@@ -1281,7 +1298,8 @@
                     "refswitch": "使用自定义promt",
                     "name": "自定义_system prompt",
                     "rank": 5,
-                    "placeholder": "You are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation, etymology, synonyms, antonyms, and example sentences of {srclang} words. \nYou should be able to handle queries in multiple languages and provide in-depth information or simple definitions according to user needs. You should reply in {tgtlang}.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed.\nThe user may also provide dictionary reference text. If provided, use it as the primary reference for pronunciation, pitch accent, and definitions, but it may be incomplete or incorrect, so do not follow it blindly."
+                    "checkfunction": "checkchatgptlike",
+                    "placeholder": "可用引用（保存时检查，缺失将无法保存）:\n{srclang} = 原文语言\n{tgtlang} = 目标语言（回复使用的语言）\n示例:\nYou are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation, etymology, synonyms, antonyms, and example sentences of {srclang} words. \nYou should be able to handle queries in multiple languages and provide in-depth information or simple definitions according to user needs. You should reply in {tgtlang}.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed.\nThe user may also provide dictionary reference text. If provided, use it as the primary reference for pronunciation, pitch accent, and definitions, but it may be incomplete or incorrect, so do not follow it blindly."
                 },
                 "Temperature": {
                     "refswitch": "Temperature.use",

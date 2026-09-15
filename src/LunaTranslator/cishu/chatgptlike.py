@@ -130,6 +130,27 @@ class ref_dict_combo(QWidget):
 
 _ref_query_guard = threading.local()
 
+_ctxpromptdefault = "The user message may include several sentences that appeared before the current sentence, provided as context. The context sentences are for reference only: use them to determine which meaning of the word is appropriate in this situation, but do not translate or explain the context sentences themselves."
+
+
+def checkchatgptlike(dd: dict):
+    errs = []
+    if dd.get("use_user_user_prompt"):
+        prompt = dd.get("user_user_prompt_1", "")
+        miss = [t for t in ("{word}", "{sentence}") if t not in prompt]
+        if miss:
+            errs.append("自定义_user message 缺少引用: " + " ".join(miss))
+        if dd.get("use_ref_dict") and "{dict}" not in prompt:
+            errs.append("已启用「同时查询辞书」，但自定义_user message 缺少引用 {dict}")
+        if dd.get("附带前文句子数", 0) > 0 and "{context}" not in prompt:
+            errs.append("已启用「附带前文句子数」，但自定义_user message 缺少引用 {context}")
+    if dd.get("使用自定义promt"):
+        prompt = dd.get("自定义promt", "")
+        miss = [t for t in ("{srclang}", "{tgtlang}") if t not in prompt]
+        if miss:
+            errs.append("自定义_system prompt 缺少引用: " + " ".join(miss))
+    return errs
+
 
 class chatgptlike(cishubase):
     use_github_md_css = True
@@ -180,7 +201,42 @@ class chatgptlike(cishubase):
         template = self.smartparselangprompt(template)
         return template
 
-    def _gptlike_createquery(self, query, sentence, usekey, tempk, dictref=None):
+    def _gptlike_createctxsys(self):
+        if not self.config.get("附带前文句子数", 0):
+            return None
+        template = (
+            self.config.get("ctx_prompt", "")
+            if self.config.get("use_ctx_prompt", True)
+            else None
+        )
+        template = template if template else _ctxpromptdefault
+        return self.smartparselangprompt(template)
+
+    def _get_prev_sentences(self, n, sentence):
+        if n <= 0:
+            return []
+        try:
+            texts = [_.text for _ in gobject.base.history.record.values()]
+        except:
+            print_exc()
+            return []
+        idx = len(texts) - 1
+        if sentence:
+            s = sentence.strip()
+            for i in range(len(texts) - 1, -1, -1):
+                if texts[i].strip() == s:
+                    idx = i
+                    break
+        outs = []
+        for i in range(idx - 1, -1, -1):
+            t = texts[i].strip()
+            if t and t not in outs:
+                outs.append(t)
+            if len(outs) >= n:
+                break
+        return outs[::-1]
+
+    def _gptlike_createquery(self, query, sentence, usekey, tempk, dictref=None, contexts=None):
         user_prompt = (
             self.config.get(tempk, "") if self.config.get(usekey, False) else ""
         )
@@ -188,6 +244,12 @@ class chatgptlike(cishubase):
         if "{word}" not in user_prompt:
             user_prompt += "{word}"
         user_prompt = user_prompt.replace("{word}", query)
+        if contexts:
+            if "{context}" not in user_prompt:
+                user_prompt = "context:\n{context}\n\n" + user_prompt
+            user_prompt = user_prompt.replace("{context}", "\n".join(contexts))
+        else:
+            user_prompt = user_prompt.replace("{context}", "")
         if sentence:
             if "{sentence}" not in user_prompt:
                 user_prompt = "sentence: {sentence}\n" + user_prompt
@@ -239,14 +301,24 @@ class chatgptlike(cishubase):
         return text
 
     def search(self, word, sentence=None):
+        n = self.config.get("附带前文句子数", 0)
+        contexts = self._get_prev_sentences(n, sentence) if n else []
         dictref = self._query_ref_dict(word, sentence)
         extrabody, extraheader = getcustombodyheaders(
             self.config.get("customparams"), **locals()
         )
         query = self._gptlike_createquery(
-            word, sentence, "use_user_user_prompt", "user_user_prompt_1", dictref
+            word,
+            sentence,
+            "use_user_user_prompt",
+            "user_user_prompt_1",
+            dictref,
+            contexts,
         )
         sysprompt = self._gptlike_createsys("使用自定义promt", "自定义promt")
+        ctxsys = self._gptlike_createctxsys()
+        if ctxsys:
+            sysprompt = sysprompt + "\n" + ctxsys
         apitype = APIType(self.config["API接口地址"])
         if apitype == APIType.gemini:
             resp = self.query_gemini(apitype, sysprompt, query, extrabody, extraheader)

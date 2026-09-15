@@ -506,6 +506,55 @@ class yuyinzhidingsetting(LDialog):
         self.apply()
 
 
+class _EditorSizeGrip(QWidget):
+    def __init__(self, editor: QPlainTextEdit):
+        super().__init__(editor)
+        self._editor = editor
+        self._pressy = None
+        self._baseh = 0
+        self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        self.setFixedSize(16, 16)
+        self.setToolTip(_TR("拖动调整输入框高度"))
+
+    def mousePressEvent(self, e: QMouseEvent):
+        if e.button() == Qt.MouseButton.LeftButton:
+            self._pressy = QCursor.pos().y()
+            self._baseh = self._editor.height()
+            e.accept()
+            return
+        super().mousePressEvent(e)
+
+    def mouseMoveEvent(self, e: QMouseEvent):
+        if self._pressy is None:
+            return
+        self._editor.setFixedHeight(
+            max(60, self._baseh + QCursor.pos().y() - self._pressy)
+        )
+        e.accept()
+
+    def mouseReleaseEvent(self, e: QMouseEvent):
+        self._pressy = None
+        e.accept()
+
+    def paintEvent(self, e: QPaintEvent):
+        p = QPainter(self)
+        p.setPen(QPen(self.palette().color(QPalette.ColorRole.Mid), 1))
+        s = self.width()
+        for i in (6, 10, 14):
+            p.drawLine(i, s - 1, s - 1, i)
+
+
+class sizeablePlainTextEdit(QPlainTextEdit):
+    def __init__(self, text=""):
+        super().__init__(text)
+        self._grip = _EditorSizeGrip(self)
+
+    def resizeEvent(self, e: QResizeEvent):
+        super().resizeEvent(e)
+        self._grip.move(self.width() - 18, self.height() - 18)
+        self._grip.raise_()
+
+
 def autoinitdialog_items(dic):
     items = []
     for arg in dic["args"]:
@@ -697,8 +746,10 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
             lineW.button(QDialogButtonBox.StandardButton.Ok).setText(_TR("确定"))
             lineW.button(QDialogButtonBox.StandardButton.Cancel).setText(_TR("取消"))
         elif line["type"] == "multiline":
-            lineW = QPlainTextEdit(dd[key])
+            lineW = sizeablePlainTextEdit(dd[key])
             lineW.setPlaceholderText(line.get("placeholder", ""))
+            __n = min(max(line.get("placeholder", "").count("\n") + 2, 5), 12)
+            lineW.setMinimumHeight(lineW.fontMetrics().lineSpacing() * __n)
             self.regist[key] = lineW.toPlainText
         elif line["type"] == "file":
             __temp = {"k": dd[key]}
@@ -746,16 +797,38 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
         return lineW
 
     def save(self, callback=None):
-        for k in self.regist:
-            self.dd[k] = self.regist[k]()
+        values = {k: self.regist[k]() for k in self.regist}
         for k in self.updater:
-            self.dd.update(self.updater[k]())
+            values.update(self.updater[k]())
+        for fname in self.checkfunctions:
+            try:
+                checkfunction = getattr(importlib.import_module(self.modelfile), fname)
+                errs = checkfunction(values)
+            except:
+                print_exc()
+                errs = None
+            if errs:
+                QMessageBox.warning(self, _TR("警告"), "\n".join(errs))
+                return
+        for k in values:
+            self.dd[k] = values[k]
         self.close()
         if callback:
             try:
                 callback()
             except:
                 print_exc()
+
+    def resizefit(self):
+        # 使对话框高度适配内容，超出屏幕可用高度时以滚动条显示
+        content = self.__scrollarea.widget().sizeHint().height()
+        lay = self.layout()
+        chrome = lay.contentsMargins().top() + lay.contentsMargins().bottom()
+        if self.__btnwidget:
+            chrome += self.__btnwidget.sizeHint().height() + lay.spacing()
+        screen = self.screen() or QApplication.primaryScreen()
+        maxh = int(screen.availableGeometry().height() * 0.9)
+        self.resize(self.width(), min(content + chrome, maxh))
 
     def __init__(
         self,
@@ -776,13 +849,30 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
         self.setWindowIcon(parent.windowIcon())
         self.setWindowTitle(title)
         self.resize(QSize(width, 10))
-        formLayout = VisLFormLayout(self)
         self.regist = {}
         self.dd = dd
         self.updater = {}
         self._dict = dd.copy()
         self.modelfile = modelfile
         self.maybehasextrainfo = maybehasextrainfo
+        self.checkfunctions = [
+            line["checkfunction"] for line in lines if line.get("checkfunction")
+        ]
+        okcancels = [line for line in lines if line.get("type") == "okcancel"]
+        lines = [line for line in lines if line.get("type") != "okcancel"]
+        outLay = QVBoxLayout(self)
+        self.__scrollarea = QScrollArea(self)
+        self.__scrollarea.setWidgetResizable(True)
+        self.__scrollarea.setFrameShape(QFrame.Shape.NoFrame)
+        formwidget = QWidget(self.__scrollarea)
+        formLayout = VisLFormLayout(formwidget)
+        self.__scrollarea.setWidget(formwidget)
+        outLay.addWidget(self.__scrollarea, 1)
+        self.__btnwidget = None
+        if okcancels:
+            self.__btnwidget = self.createobject(okcancels[0], dd)
+            if self.__btnwidget:
+                outLay.addWidget(self.__btnwidget)
         self.__qt6fucker: "list[QComboBox]" = []
         hasrank = []
         negarank = []
@@ -901,7 +991,7 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
                 for row in viss:
                     formLayout.setRowVisible(row, True)
                 QApplication.processEvents()
-                self.resize(self.width(), 1)
+                self.resizefit()
 
             self.cachecombo[comboname].currentIndexChanged.connect(
                 functools.partial(
@@ -911,6 +1001,7 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
             self.cachecombo[comboname].currentIndexChanged.emit(
                 self.cachecombo[comboname].currentIndex()
             )
+        self.resizefit()
         if exec_:
             self.exec()
         else:
