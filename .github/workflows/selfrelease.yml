@@ -61,3 +61,8 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # softprops 对已存在的 release 传空 body 时不会覆盖旧描述，这里强制清空
+      - name: Clear release notes
+        run: gh release edit "${{ steps.loadversion.outputs.version }}-self" --notes "" --repo 15963360/LunaTranslator
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
