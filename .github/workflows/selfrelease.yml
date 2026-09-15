@@ -57,13 +57,6 @@ jobs:
         with:
           tag_name: ${{ steps.loadversion.outputs.version }}-self
           name: ${{ steps.loadversion.outputs.version }} Windows (self)
-          body: |
-            非官方自用构建，未使用 SignPath 签名。
-
-            基于 fork 修改：大模型查词可同时查询已启用辞书作为参考。
-
-            请使用 `LunaTranslator_x64.zip`（Windows 10/11 64 位）。解压后运行 `LunaTranslator.exe`。
-            需要 HOOK 游戏时使用 `LunaTranslator_admin.exe`。
           files: packed/*.zip
           fail_on_unmatched_files: true
         env:
