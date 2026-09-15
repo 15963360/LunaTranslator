@@ -144,11 +144,6 @@ def checkchatgptlike(dd: dict):
             errs.append("已启用「同时查询辞书」，但自定义_user message 缺少引用 {dict}")
         if dd.get("附带前文句子数", 0) > 0 and "{context}" not in prompt:
             errs.append("已启用「附带前文句子数」，但自定义_user message 缺少引用 {context}")
-    if dd.get("使用自定义promt"):
-        prompt = dd.get("自定义promt", "")
-        miss = [t for t in ("{srclang}", "{tgtlang}") if t not in prompt]
-        if miss:
-            errs.append("自定义_system prompt 缺少引用: " + " ".join(miss))
     return errs
 
 
@@ -195,7 +190,7 @@ class chatgptlike(cishubase):
         return response
 
     def _gptlike_createsys(self, usekey, tempk):
-        default = "You are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation, etymology, synonyms, antonyms, and example sentences of {srclang} words. \nYou should be able to handle queries in multiple languages and provide in-depth information or simple definitions according to user needs. You should reply in {tgtlang}.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed.\nThe user may also provide dictionary reference text. If provided, use it as the primary reference for pronunciation, pitch accent, and definitions, but it may be incomplete or incorrect, so do not follow it blindly."
+        default = "You are a professional dictionary assistant whose task is to help users search for information such as the meaning, pronunciation (kana reading and pitch accent), etymology, synonyms, antonyms, and example sentences of Japanese words. \nYou should provide in-depth information or simple definitions according to user needs. You should reply in Simplified Chinese.\nThe user may provide the sentence in which the word is located. If the user provides the sentence in which the word is located, the semantics of the word in the sentence should also be analyzed.\nThe user may also provide dictionary reference text. If provided, use it as the primary reference for pronunciation, pitch accent, and definitions, but it may be incomplete or incorrect, so do not follow it blindly."
         template = self.config[tempk] if self.config[usekey] else None
         template = template if template else default
         template = self.smartparselangprompt(template)

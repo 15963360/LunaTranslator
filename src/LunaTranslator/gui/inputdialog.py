@@ -751,6 +751,18 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
             __n = min(max(line.get("placeholder", "").count("\n") + 2, 5), 12)
             lineW.setMinimumHeight(lineW.fontMetrics().lineSpacing() * __n)
             self.regist[key] = lineW.toPlainText
+            # desc 显示在编辑框外部，编辑后仍可见（placeholder 编辑后即消失）
+            desc = line.get("desc", None)
+            if desc:
+                __descw = QWidget()
+                __lay = QVBoxLayout(__descw)
+                __lay.setContentsMargins(0, 0, 0, 0)
+                __lay.setSpacing(2)
+                __label = QLabel(desc)
+                __label.setWordWrap(True)
+                __lay.addWidget(__label)
+                __lay.addWidget(lineW)
+                lineW = __descw
         elif line["type"] == "file":
             __temp = {"k": dd[key]}
             lineW = getsimplepatheditor(
