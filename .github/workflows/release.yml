@@ -13,6 +13,8 @@ jobs:
   signandrepack:
     runs-on: windows-latest
     needs: [buildluna]
+    env:
+      SIGNPATH_TOKEN: ${{ secrets.SIGNPATH_APITOKEN }}
     permissions:
       contents: write   
       pages: write
@@ -30,7 +32,7 @@ jobs:
           name: exedlls
           path: collect
   
-      - if: ${{ secrets.SIGNPATH_APITOKEN != '' }}
+      - if: env.SIGNPATH_TOKEN != ''
         uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: '${{ secrets.SIGNPATH_APITOKEN }}'
@@ -42,7 +44,7 @@ jobs:
           output-artifact-directory: 'signed_exedlls'
           artifact-configuration-slug: 'exedlls'
 
-      - if: ${{ secrets.SIGNPATH_APITOKEN != '' }}
+      - if: env.SIGNPATH_TOKEN != ''
         uses: actions/upload-artifact@v7
         with:
           name: signed_exedlls
@@ -68,6 +70,8 @@ jobs:
   release:
     runs-on: windows-latest
     needs: [signandrepack,loadversion]
+    env:
+      UPDATE_NOTIFY: ${{ secrets.LUNA_UPDATE_NOTIFY }}
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -81,5 +85,5 @@ jobs:
             build/signed/LunaTranslator_x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ secrets.LUNA_UPDATE_NOTIFY != '' }}
+      - if: env.UPDATE_NOTIFY != ''
         run: curl https://lunatranslator.org/${{ secrets.LUNA_UPDATE_NOTIFY }}
