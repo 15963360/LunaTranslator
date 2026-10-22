@@ -160,3 +160,8 @@ def safepixmap(bs):
         return QPixmap()
     return pixmap
 
+
+mouseselectwindow = getattr(NativeUtils, "mouseselectwindow", None)
+getcurrexe = getattr(NativeUtils, "getcurrexe", None)
+
+
