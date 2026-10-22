@@ -212,6 +212,7 @@
             "use_custom_prompt": false,
             "custom_prompt": "",
             "max_tokens": 1024,
+            "max_tokens_use": false,
             "Temperature": 0,
 			"Temperature.use": true,
             "top_p": 0.3,
@@ -309,6 +310,7 @@
                 "type": "switch"
             },
             "max_tokens": {
+                "refswitch": "max_tokens_use",
                 "type": "intspin",
                 "min": 1,
                 "max": 1000000,

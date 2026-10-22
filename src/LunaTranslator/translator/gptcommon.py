@@ -488,9 +488,10 @@ class gptcommon(basetrans):
             model=self.config["model"],
             messages=messages,
             system=sysprompt,
-            max_tokens=self.config["max_tokens"],
             stream=usingstream,
         )
+        if self.config.get("max_tokens_use", self.config.get("max_tokens.use", False)):
+            data["max_tokens"] = self.config["max_tokens"]
         if self.config.get("Temperature.use", True):
             data.update(temperature=self.config["Temperature"])
         headers.update(extraheader)

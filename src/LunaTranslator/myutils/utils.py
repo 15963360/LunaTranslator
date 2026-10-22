@@ -520,6 +520,12 @@ def checkportavailable(port):
         sock.close()
 
 
+def get_free_port(host="127.0.0.1", sock_type=socket.SOCK_STREAM):
+    with socket.socket(socket.AF_INET, sock_type) as s:
+        s.bind((host, 0))
+        return s.getsockname()[1]
+
+
 def splittranslatortypes():
     class __:
         def __init__(self):
@@ -1164,9 +1170,10 @@ def common_create_gpt_data(config: dict, message, extrabody):
     )
     if config.get("Temperature.use", True):
         data.update(temperature=config["Temperature"])
-    use_max_completion_tokens = config.get("use_max_completion_tokens", False)
-    key_tokens = ("max_tokens", "max_completion_tokens")[use_max_completion_tokens]
-    data.update({key_tokens: config["max_tokens"]})
+    if config.get("max_tokens_use", config.get("max_tokens.use", False)):
+        use_max_completion_tokens = config.get("use_max_completion_tokens", False)
+        key_tokens = ("max_tokens", "max_completion_tokens")[use_max_completion_tokens]
+        data.update({key_tokens: config["max_tokens"]})
     if config.get("流式输出", False):
         data.update(stream=True)
     if config.get("frequency_penalty_use", False):
@@ -1194,10 +1201,11 @@ def common_create_gemini_request(
     extrabody,
     apitype: APIType,
 ):
-    gen_config = {
-        "maxOutputTokens": config["max_tokens"],
-        "topP": config["top_p"],
-    }
+    gen_config = {}
+    if config.get("max_tokens_use", config.get("max_tokens.use", False)):
+        gen_config["maxOutputTokens"] = config["max_tokens"]
+    if config.get("top_p_use", True):
+        gen_config["topP"] = config["top_p"]
     if config.get("Temperature.use", True):
         gen_config.update(temperature=config["Temperature"])
     if config.get("frequency_penalty_use", False):

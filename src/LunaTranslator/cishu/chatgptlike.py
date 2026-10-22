@@ -343,8 +343,9 @@ class chatgptlike(cishubase):
             model=self.config["model"],
             messages=message,
             system=sysprompt,
-            max_tokens=self.config["max_tokens"],
         )
+        if self.config.get("max_tokens_use", self.config.get("max_tokens.use", False)):
+            data["max_tokens"] = self.config["max_tokens"]
         if self.config.get("Temperature.use", True):
             data.update(temperature=self.config["Temperature"])
         data.update(extrabody)

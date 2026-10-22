@@ -1151,6 +1151,7 @@
                 "使用自定义promt": false,
                 "自定义promt": "",
                 "max_tokens": 4096,
+                "max_tokens_use": false,
                 "Temperature": 0,
                 "Temperature.use": true,
                 "use_max_completion_tokens": false,
@@ -1288,6 +1289,7 @@
                     "type": "switch"
                 },
                 "max_tokens": {
+                    "refswitch": "max_tokens_use",
                     "type": "intspin",
                     "min": 1,
                     "max": 1000000,

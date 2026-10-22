@@ -407,9 +407,10 @@
 			"SECRET_KEY": "",
 			"使用自定义promt": false,
 			"自定义promt": "",
-			"流式输出": true,
-			"max_tokens": 1024,
-			"Temperature": 0,
+				"流式输出": true,
+				"max_tokens": 1024,
+				"max_tokens_use": false,
+				"Temperature": 0,
 			"Temperature.use": true,
 			"top_p": 0.3,
 			"top_p_use": true,
@@ -531,14 +532,15 @@
 				"name": "使用_max_completion_tokens",
 				"type": "switch"
 			},
-			"max_tokens": {
-				"type": "intspin",
-				"min": 1,
-				"max": 1000000,
-				"appends": [
-					"use_max_completion_tokens"
-				]
-			},
+				"max_tokens": {
+					"refswitch": "max_tokens_use",
+					"type": "intspin",
+					"min": 1,
+					"max": 1000000,
+					"appends": [
+						"use_max_completion_tokens"
+					]
+				},
 			"流式输出": {
 				"type": "switch",
 				"rank": 2.3
@@ -718,8 +720,9 @@
 			"流式输出": true,
 			"append_context_num": 3,
 			"use_context": false,
-			"max_tokens": 1024,
-			"Temperature": 0.6,
+				"max_tokens": 1024,
+				"max_tokens_use": false,
+				"Temperature": 0.6,
 			"Temperature.use": true,
 			"top_p": 0.8,
 			"top_p_use": true,
@@ -807,11 +810,12 @@
 				"max": 1,
 				"step": 0.01
 			},
-			"max_tokens": {
-				"type": "intspin",
-				"min": 1,
-				"max": 1000000
-			},
+				"max_tokens": {
+					"refswitch": "max_tokens_use",
+					"type": "intspin",
+					"min": 1,
+					"max": 1000000
+				},
 			"frequency_penalty": {
 				"refswitch": "frequency_penalty_use",
 				"type": "spin",
