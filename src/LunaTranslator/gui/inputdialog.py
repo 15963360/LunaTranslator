@@ -1,12 +1,14 @@
 from qtsymbols import *
+from gui.fluent.messagebox import ExMessageBox
 import functools, importlib
 from traceback import print_exc
-import os, gobject, requests, sys, uuid
+import os, gobject, requests, uuid
 from myutils.commonbase import maybejson
 from myutils.config import globalconfig, _TR, static_data
 from myutils.utils import selectdebugfile, makehtml
 from myutils.wrapper import Singleton
 from gui.usefulwidget import (
+    makescroll,
     MySwitch,
     getsimpleswitch,
     manybuttonlayout,
@@ -302,9 +304,9 @@ class voiceselect(LDialog):
         )
         _layout.addRow("引擎", combo)
         self._layout = _layout
+        self.voicelistsignal.connect(self.loadedvoice)
         combo.currentIndexChanged.emit(combo.currentIndex())
         _layout.addRow(button)
-        self.voicelistsignal.connect(self.loadedvoice)
         self.object = None
         self.lastwidget = None
 
@@ -612,7 +614,6 @@ def autoinitdialog_items(dic):
         if "argstype" in dic and arg in dic["argstype"]:
             default.update(dic["argstype"][arg])
         items.append(default)
-    items.append(dict(type="okcancel", rank=-sys.float_info.min))
     return items
 
 
@@ -674,9 +675,9 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
                         text += "\n"
                     text += e.args[1]
                 print(title, text)
-                QMessageBox.information(self, title, text)
+                ExMessageBox.critical(self, title, text)
             else:
-                QMessageBox.information(self, str(type(e))[8:-2], str(e))
+                ExMessageBox.critical(self, str(type(e))[8:-2], str(e))
 
     def createobject(self, line: "dict", dd: "dict[dict,str|dict]", sub=False):
         if "k" in line:
@@ -782,18 +783,6 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
                     )
                 )
             lineW.addWidget(combo)
-        elif line["type"] == "okcancel":
-            lineW = QDialogButtonBox(
-                QDialogButtonBox.StandardButton.Ok
-                | QDialogButtonBox.StandardButton.Cancel
-            )
-            lineW.rejected.connect(self.close)
-            lineW.accepted.connect(
-                functools.partial(self.save, line.get("callback", None))
-            )
-
-            lineW.button(QDialogButtonBox.StandardButton.Ok).setText(_TR("确定"))
-            lineW.button(QDialogButtonBox.StandardButton.Cancel).setText(_TR("取消"))
         elif line["type"] == "multiline":
             lineW = sizeablePlainTextEdit(dd[key])
             lineW.setPlaceholderText(line.get("placeholder", ""))
@@ -901,6 +890,7 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
         modelfile=None,
         maybehasextrainfo=None,
         exec_=False,
+        callback=None,
     ) -> None:
         super().__init__(
             parent,

@@ -23,6 +23,7 @@ enum class HOSTINFO
   Warning,
   EmuWarning,
   EmuConnected,
+  EngineType,
 };
 #define NEXT_MASK(x)            \
   DUMMY1_##x,                   \
@@ -67,7 +68,7 @@ enum HookParamType : int32_t
   NEXT_MASK(EMBED_INSERT_SPACE_ALWAYS),
   NEXT_MASK(EMBED_INSERT_SPACE_AFTER_UNENCODABLE),
 
-  DECLARE_VALUE(NORMAL_INLINEHOOK, 0),
+  NEXT_MASK(INLINE_HOOK),
   NEXT_MASK(BREAK_POINT),
   NEXT_MASK(DIRECT_READ), // /R read code instead of classic /H hook code
 

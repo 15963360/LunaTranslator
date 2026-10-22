@@ -64,7 +64,9 @@ def tryreadconfig2(path):
     return x
 
 
-ui_settings: "dict[str, dict[str, str|dict|list] | list[str|dict] | str]" = tryreadconfig("ui_settings.json")
+ui_settings: "dict[str, dict[str, str|dict|list] | list[str|dict] | str]" = (
+    tryreadconfig("ui_settings.json")
+)
 static_data: "dict[str, dict[str, str|dict|list] | list[str|dict] | str]" = (
     tryreadconfig2("static_data.json")
 )
@@ -212,7 +214,6 @@ def getdefaultsavehook(title=None):
         # "steamid": 0,
         "title": "",
         # "imagepath_all": [],
-        "usertags": [],
         "developers": [],
         "webtags": [],  # 标签
         # "createtime":xx  添加时间
@@ -408,14 +409,9 @@ def migrate_ui_settings():
         "transparent",
         "transparent_tool",
         "backgroundpic",
-        "settingfonttype",
-        "theme3",
         "backcolor",
         "backcolor_tool",
         "darklight2",
-        "settingfontsize",
-        "force_rect",
-        "WindowBackdrop",
         "button_color_normal",
         "buttoncolor_1",
         "buttoncolor",
@@ -426,11 +422,9 @@ def migrate_ui_settings():
         "WindowEffect_shadow",
         "text_area_background",
         "text_area_background_color",
-        "text_area_background_alpha",
         "text_area_background_r",
         "text_area_background_w",
         "text_area_background_h",
-
         "WordViewTooltipColor",
         "WordViewTooltipContentColor",
         "WordViewTooltipHideFocus",
@@ -447,7 +441,7 @@ def migrate_ui_settings():
         "word_hover_border",
         "word_hover_DWM",
         "word_hover_DWM_1",
-
+        "min_auto_height",
     ):
         if k in globalconfig:
             ui_settings[k] = globalconfig.pop(k)
@@ -676,6 +670,7 @@ def checkintegrity():
         "Magpie/Magpie.Core.exe" if not runtime_for_xp else None,
         "LunaHook/LunaHook32.dll",
         "LunaHook/LunaHook64.dll",
+        "LunaHook/LunaTmpFontLoader.dll",
     ]
     for f in dllshared:
         if f:
@@ -691,3 +686,36 @@ def checkintegrity():
             dynamiclink("README.html#anchor-commonerrors", docs=True), _TR("说明")
         )
     return None
+
+
+class MagpieConfig:
+    @staticmethod
+    def remove(gameuid):
+        path = os.path.normpath(uid2gamepath[gameuid])
+        for profile in magpie_config["profiles"].copy():
+            if path == profile.get("pathRule"):
+                magpie_config["profiles"].remove(profile)
+                break
+
+    @staticmethod
+    def find(gameuid, notexitscreate=False):
+        if not gameuid:
+            return magpie_config["profiles"][0]
+        path = os.path.normpath(uid2gamepath[gameuid])
+        found = None
+        for profile in magpie_config["profiles"]:
+            if path == profile.get("pathRule"):
+                found = profile
+                break
+        if notexitscreate and not found:
+            cp = copy.deepcopy(magpie_config["profiles"][0])
+            cp["pathRule"] = path
+            cp["name"] = savehook_new_data[gameuid]["title"]
+            cp["packaged"] = False
+            cp["classNameRule"] = "PLACEHOLDER"
+            cp["launcherPath"] = ""
+            cp["launchParameters"] = ""
+            cp["autoScale"] = 0
+            magpie_config["profiles"].append(cp)
+            found = cp
+        return found

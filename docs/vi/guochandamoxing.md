@@ -132,10 +132,6 @@ Thay thế `{endpoint}` và `{deployName}` bằng endpoint và deployName của 
 
 **API Key** https://platform.deepseek.com/api_keys
 
-== Xiaomi MiMo
-
-**API Key** https://platform.xiaomimimo.com/#/console/api-keys
-
 == Alibaba Cloud Bailian Large Model
 
 **API Key** https://bailian.console.aliyun.com/?apiKey=1#/api-key
@@ -205,4 +201,5 @@ Hiện tại, giao diện này hỗ trợ các mô hình sau:
 | Tác giả | Mô hình | Ngôn ngữ |
 | ---- | ---------- | ---------- | 
 | tencent | Hy-MT2 | Đa năng |
+| IndexTeam | Index-Translate | Đa năng |
 | SakuraLLM | SakuraLLM & GalTransl | Tiếng Nhật -> Tiếng Trung |

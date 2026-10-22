@@ -1,4 +1,5 @@
 #include "dbcrnn.hpp"
+#ifdef _WIN32
 #ifdef WINXP
 #include "../xpundef/xp_dxgi.h"
 #include "../xpundef/xp_d3d12.h"
@@ -77,37 +78,6 @@ int findDeviceId(uint64_t &luid)
     return 0;
 }
 
-DECLARE_API void OcrDetect(OcrLite *pOcrObj, const cv::Mat *mat,
-                           Directional mode, void (*cb)(float, float, float, float, float, float, float, float, const char *), void (*cb2)(const char *))
-{
-    if (!pOcrObj)
-        return;
-
-    try
-    {
-        auto result = pOcrObj->detect(*mat, mode);
-
-        for (const auto &item : result)
-        {
-            cb(item.first[0].x, item.first[0].y,
-               item.first[1].x, item.first[1].y,
-               item.first[2].x, item.first[2].y,
-               item.first[3].x, item.first[3].y,
-               item.second.c_str());
-        }
-    }
-    catch (std::exception &e)
-    {
-        cb2(e.what());
-    }
-}
-
-DECLARE_API void OcrDestroy(OcrLite *pOcrObj)
-{
-    if (pOcrObj)
-        delete pOcrObj;
-}
-
 static std::optional<version_t> __QueryVersion(const std::wstring &exe)
 {
     auto _ = QueryVersion(exe);
@@ -121,7 +91,7 @@ static std::optional<version_t> __QueryVersion(const std::wstring &exe)
 static bool isvcrtlessthan1440()
 {
     // 实测之和msvcp140有关，低版本的vcruntime140.dll不影响。
-    // 但稳妥起见，都检查一下。
+    // Wine's VCRuntime may have no version resource. Keep the MSVCP check.
     auto checkversion = [](LPCWSTR dll)
     {
         auto hdll = GetModuleHandle(dll);
@@ -131,7 +101,8 @@ static bool isvcrtlessthan1440()
         GetModuleFileNameW(hdll, path, MAX_PATH);
         return __QueryVersion(path) < std::make_tuple(14u, 40u, 0u, 0u);
     };
-    return checkversion(L"msvcp140.dll") || checkversion(L"vcruntime140.dll");
+    return checkversion(L"msvcp140.dll") ||
+           (!IsRunningOnWine() && checkversion(L"vcruntime140.dll"));
 }
 static std::optional<version_t> checkfileversion(const std::optional<std::wstring> &exe)
 {
@@ -157,9 +128,7 @@ static bool __OcrLoadRuntime()
     if (GetModuleHandleW(L"onnxruntime.dll"))
         return true;
     WCHAR path[MAX_PATH];
-    HMODULE hmodule;
-    GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)&__OcrLoadRuntime, &hmodule);
-    GetModuleFileNameW(hmodule, path, MAX_PATH);
+    GetModuleFileNameW((HMODULE)&__ImageBase, path, MAX_PATH);
     auto currdir = std::filesystem::path(path).parent_path();
     auto myonnx = (currdir / "onnxruntime.dll").wstring();
     auto vermy = checkfileversion(myonnx);
@@ -272,12 +241,56 @@ DECLARE_API void GetDeviceInfoD3D12(void (*cb)(uint64_t, LPCWSTR))
         }
     }
 }
+#else
+DECLARE_API bool OcrLoadRuntime()
+{
+    // Linux：onnxruntime直接随模块链接，无需运行时查找加载
+    _InitApi();
+    return true;
+}
+DECLARE_API bool OcrIsProviderAvailable(const wchar_t *provider)
+{
+    (void)provider;
+    return false;
+}
+#endif
 
+DECLARE_API void OcrDetect(OcrLite *pOcrObj, const cv::Mat *mat,
+                           Directional mode, void (*cb)(float, float, float, float, float, float, float, float, const char *), void (*cb2)(const char *))
+{
+    if (!pOcrObj)
+        return;
+
+    try
+    {
+        auto result = pOcrObj->detect(*mat, mode);
+
+        for (const auto &item : result)
+        {
+            cb(item.first[0].x, item.first[0].y,
+               item.first[1].x, item.first[1].y,
+               item.first[2].x, item.first[2].y,
+               item.first[3].x, item.first[3].y,
+               item.second.c_str());
+        }
+    }
+    catch (std::exception &e)
+    {
+        cb2(e.what());
+    }
+}
+
+DECLARE_API void OcrDestroy(OcrLite *pOcrObj)
+{
+    if (pOcrObj)
+        delete pOcrObj;
+}
 
 DECLARE_API OcrLite *OcrInit(const wchar_t *szDetModel, const wchar_t *szRecModel, const wchar_t *szKeyPath, int nThreads, bool gpu, uint64_t luid, const char *device_type, void (*cb2)(const char *))
 {
     OcrLite *pOcrObj = nullptr;
     DeviceInfo info;
+#ifdef _WIN32
     if (gpu && isDMLAvailable())
     {
         int device = findDeviceId(luid);
@@ -297,6 +310,7 @@ DECLARE_API OcrLite *OcrInit(const wchar_t *szDetModel, const wchar_t *szRecMode
         }
         info.info = DeviceInfo::openvino{std::move(__)};
     }
+#endif
 
     try
     {

@@ -35,7 +35,10 @@ bool ENGINE::check_function()
     {
         return Util::SearchResourceString(std::get<check_by_single>(check_by_target));
     }
-
+    case CHECK_BY::StringFileInfo:
+    {
+        return Util::SearchStringFileInfo(std::get<check_by_single>(check_by_target));
+    }
     case CHECK_BY::CUSTOM:
     {
         return std::get<check_by_custom_function>(check_by_target)();
@@ -95,6 +98,7 @@ bool checkengine()
         bool attached = safeattach(m, enginename.c_str());
         if (attached)
         {
+            Msg::EngineType(enginename.c_str());
             jittypedefault = m->jittype;
             if (jittypedefault != JITTYPE::PC)
             {

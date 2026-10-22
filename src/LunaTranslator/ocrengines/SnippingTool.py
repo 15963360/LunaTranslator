@@ -1,6 +1,7 @@
-import threading, NativeUtils, windows
+import NativeUtils, gobject
 from qtsymbols import *
-from ctypes import Structure, memmove, c_longlong, c_int, c_float, c_int32, c_int64
+from gui.fluent.messagebox import ExMessageBox
+from ctypes import Structure, c_float, c_int32, c_int64
 from ocrengines.baseocrclass import baseocr, OCRResult
 from LunaSubProcess import LunaSubProcess
 import os, zipfile, shutil
@@ -10,7 +11,7 @@ import gobject, requests
 from traceback import print_exc
 from myutils.wrapper import threader
 from myutils.proxy import getproxy
-import re, uuid
+import re
 from gui.dynalang import LPushButton, LLabel, LDialog, LFormLayout
 from myutils.wrapper import Singleton
 from gui.usefulwidget import VisLFormLayout
@@ -175,9 +176,9 @@ class question(QWidget):
         self.formLayout.setRowVisible(1, not succ)
         self.formLayout.setRowVisible(2, False)
         if succ:
-            QMessageBox.information(self, _TR("成功"), _TR("添加成功"))
+            ExMessageBox.information(self, _TR("成功"), _TR("添加成功"))
         else:
-            QMessageBox.critical(
+            ExMessageBox.critical(
                 self,
                 _TR("添加失败"),
                 _TR("错误") + "\n" + failreason,

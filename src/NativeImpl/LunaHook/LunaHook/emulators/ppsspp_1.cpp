@@ -240,6 +240,10 @@ namespace
         StringFilter(buffer, TEXTANDLEN("@I"));
         StringFilter(buffer, TEXTANDLEN("@P"));
     }
+    void ULJS00203(TextBuffer *buffer, HookParam *hp)
+    {
+        StringFilter(buffer, TEXTANDLEN("@r"));
+    }
     void ULJM06147(TextBuffer *buffer, HookParam *hp)
     {
         CharFilter(buffer, L'R');
@@ -587,6 +591,25 @@ namespace
         StringFilter(buffer, TEXTANDLEN("\x81\x40"));
         ULJM05943F(buffer, hp);
     }
+    void ULJM06104(TextBuffer *buffer, HookParam *hp)
+    {
+        auto s = buffer->strA();
+        if (s.find("[f size=") == s.npos)
+            return buffer->clear();
+        s = strReplace(s, "[br]");
+        s = re::sub(s, R"(\[f.*?\](.*?)\[/f\])", "$1");
+        buffer->from(s);
+    }
+    void ULJM05995_2(TextBuffer *buffer, HookParam *hp)
+    {
+        auto ws = buffer->strW();
+        if (all_ascii(ws))
+            return buffer->clear();
+        ws = strReplace(ws, L"[br]");
+        ws = strReplace(ws, L"[macropop]");
+        ws = strReplace(ws, L"[firstname]", L"アリス");
+        buffer->from(ws);
+    }
     void ULJM05995(TextBuffer *buffer, HookParam *hp)
     {
         static std::wstring last;
@@ -594,7 +617,10 @@ namespace
         if (last == ws)
             return buffer->clear();
         last = ws;
-        buffer->from(strReplace(ws, L"[br]"));
+        ws = strReplace(ws, L"[br]");
+        ws = strReplace(ws, L"[macropop]");
+        ws = strReplace(ws, L"[firstname]", L"アリス");
+        buffer->from(ws);
     }
     DECLARE_FUNCTION(ULJM06167N, const char *_);
     void ULJM06167(TextBuffer *buffer, HookParam *hp)
@@ -1626,6 +1652,47 @@ namespace
         }
         buffer->from(ws);
     }
+    void ULJS00273mes(hook_context *context, HookParam *hp, TextBuffer *buffer, uintptr_t *)
+    {
+        static auto charset = LoadResCharSet(L"PS2COMMON");
+        auto tp = (uint32_t *)(uintptr_t)PPSSPP::emu_addr(context, 0x8A9BE34);
+        if (!tp || !*tp)
+            return buffer->clear();
+        auto p = (const uint16_t *)(uintptr_t)PPSSPP::emu_addr(context, *tp);
+        if (!p)
+            return buffer->clear();
+        static std::wstring last;
+        std::wstring out;
+        for (int i = 0; i < 512; i++)
+        {
+            uint16_t v = p[i];
+            if (v == 0xffff || v == 0xfffd || v == 0xfffb || v == 0xfff0)
+                break; // 结束符
+            if (v == 0xfffe)
+            {
+                // out.push_back(L'\n');
+                continue;
+            }
+            if (v >= 0xff00)
+                continue; // 其它控制码
+            if (v == 0)
+                continue; // 空槽
+            if (v < charset.size() && charset[v])
+                out.push_back(charset[v]);
+        }
+        if (out.empty())
+            return buffer->clear();
+        if (out[0] == L'、')
+            out.erase(0, 1); // 行首消息标记(顿号) — 日语句子不会以顿号开头
+        if (out.empty())
+            return buffer->clear();
+        // 打字机光标推进: 后续输出是上次输出的真后缀(更短) → 跳过; 新消息(非后缀) → 输出
+        if (!last.empty() && out.size() < last.size() &&
+            last.compare(last.size() - out.size(), out.size(), out) == 0)
+            return buffer->clear();
+        last = out;
+        buffer->from(out);
+    }
 }
 struct emfuncinfoX
 {
@@ -1633,6 +1700,10 @@ struct emfuncinfoX
     emfuncinfo info;
 };
 static const emfuncinfoX emfunctionhooks_1[] = {
+    // マリッジロワイヤル
+    {0x8808764, {FULL_STRING | CODEC_UTF16, 0, 0, ULJS00273mes, 0, "ULJS00273"}},
+    // ソラユメportable
+    {0x8828924, {FULL_STRING, 1, 0, 0, ULJS00203, "ULJS00203"}},
     // Ｌの季節 ダブルポケット
     {0x887B6E8, {FULL_STRING, 0, 0, 0, ULJM06040_1, "ULJM05555"}},
     // あかね色に染まる坂ぽ～たぶる
@@ -1666,7 +1737,6 @@ static const emfuncinfoX emfunctionhooks_1[] = {
     // Starry☆Sky～After Summer～Portable //ULJM06208
     // Starry☆Sky～After Autumn～Portable //ULJM06209
     // Starry☆Sky～After Winter～Portable //ULJM06210
-    // アラビアンズ・ロスト //ULJM06104
     // MEMORIES OFF //ULJM05334
 
     // しろくまベルスターズ♪ ハッピー・ホリデーズ！
@@ -1840,7 +1910,11 @@ static const emfuncinfoX emfunctionhooks_1[] = {
     // デス・コネクション　ポータブル
     {0x8855594, {FULL_STRING, 0, 0, 0, ULJM05823, "ULJM05823"}},
     // しらつゆの怪
-    {0x888A26C, {0, 0, 0, 0, ULJM06289, "ULJM06289"}},
+    {0x888A26C, {FULL_STRING, 0, 0, 0, ULJM06289, "ULJM06289"}},
+    {0x8919E30, {FULL_STRING, 0, 0, 0, ULJM06289, "ULJM06289"}},
+    {0x8962EA0, {FULL_STRING, 1, 0, 0, ULJM06289, "ULJM06289"}},
+    // ジョーカーの国のアリス～Wonderful Wonder World～
+    {0x880F8F0, {FULL_STRING, 0, 0, 0, ULJM06344, "ULJM05973"}},
     // ダイヤの国のアリス～Wonderful Wonder World～
     {0x8857E3C, {0, 0, 0, 0, 0, "ULJM06216"}},
     // ダイヤの国のアリス～ Wonderful Mirror World ～
@@ -1849,6 +1923,7 @@ static const emfuncinfoX emfunctionhooks_1[] = {
     {0x8881CAC, {0, 1, 0, 0, 0, "NPJH50872"}},
     // おもちゃ箱の国のアリス～Wonderful Wonder World～
     {0x8884A0C, {CODEC_UTF16, 5, 0, 0, ULJM05995, "ULJM05995"}},
+    {0x88831BC, {CODEC_UTF16, 0xc, 0, 0, ULJM05995_2, "ULJM05995"}},
     // 新装版 ハートの国のアリス～Wonderful Wonder World～
     {0x886B610, {0, 1, 0, 0, 0, "ULJM06332"}},
     // 新装版クローバーの国のアリス～Wonderful Wonder World～
@@ -2063,8 +2138,10 @@ static const emfuncinfoX emfunctionhooks_1[] = {
     // ヒイロノカケラ-Piece of Future-
     {0x88FAF08, {0, 0, 0, 0, ULJM05823_2, "ULJM05913"}},
     {0x88FAF20, {0, 1, 0, 0, ULJM05913, "ULJM05913"}},
+    // アラビアンズ・ロスト
+    {0x884E020, {FULL_STRING, 0xf, 0, 0, ULJM06104, "ULJM06104"}}, // 这个只是补充部分sceFontGetCharInfo提取不到的。仍需要sceFontGetCharInfo
     // アラビアンズ・ダウト
-    {0x88406FC, {0, 0, 0, 0, 0, "NPJH50834"}},
+    {0x8846CF4, {FULL_STRING, 1, 0, 0, ULJM06344, "NPJH50834"}},
     // いざ、出陣！恋戦 第二幕 ～甲斐編～
     {0x8945C20, {CODEC_UTF16, 1, 0, 0, ULJM06346, "ULJM06346"}},
     {0x8804950, {CODEC_UTF16, 1, 0, 0, ULJM06346, "ULJM06347"}},
@@ -2386,7 +2463,7 @@ static const emfuncinfoX emfunctionhooks_1[] = {
     // どこでもいっしょ
     {0x8819C88, {0, 1, 0, 0, NewLineCharFilterA, "UCJS10002"}},
     // テイルズ オブ ファンタジア なりきりダンジョンX
-    {0x88F45D0, {0, 5, 0, 0, ULJS00293, "ULJS00293"}},
+    {0x88F45D0, {FULL_STRING, 5, 0, 0, ULJS00293, "ULJS00293"}},
 
 };
 

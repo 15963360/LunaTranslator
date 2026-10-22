@@ -18,7 +18,6 @@ def psp():
             _id = " & ".join(
                 re.findall('"(.*?)"', content[match.span()[1] :].split("\n")[0])
             )
-        game = re.sub(r"\s\[.*?\]", "", game)
         ret.append((_id, game))
     return ret
 
@@ -28,21 +27,25 @@ def ns():
         content = ff.read().split(" = {")[-1]
     content = content[: content.find("};")]
     ret = []
-    for match in re.finditer(r"^    // (.*?)\n", content, re.MULTILINE):
+    comments = list(re.finditer(r"^    // (.*?)\n", content, re.MULTILINE))
+    for i, match in enumerate(comments):
         game = match.groups()[0]
         m = re.search(r"(.*?) //([\w\d]{16})", game)
         if m:
             _id = m.groups()[1]
             game = m.groups()[0].strip()
         else:
+            # one game name may cover several hook entries, each carrying its
+            # own title id (e.g. a DOUBLE PACK). gather every id between this
+            # comment and the next one, dedupe (keep order), join with " & ".
+            start = match.span()[1]
+            end = comments[i + 1].span()[0] if i + 1 < len(comments) else len(content)
+            section = content[start:end]
             _id = " & ".join(
-                re.findall(
-                    r"0x([\w\d]{16})ull", content[match.span()[1] :].split("\n")[0]
-                )
+                list(dict.fromkeys(re.findall(r"0x([\w\d]{16})ull", section)))
             )
             game = game.split("//")[0].strip()
 
-        game = re.sub(r"\s\[.*?\]", "", game)
         ret.append((_id, game))
     return ret
 
@@ -61,7 +64,6 @@ def psv():
             _id = " & ".join(
                 re.findall('"(.*?)"', content[match.span()[1] :].split("\n")[0])
             )
-        game = re.sub(r"\s\[.*?\]", "", game)
         ret.append((_id, game))
     return ret
 
@@ -115,7 +117,6 @@ def pcsx2():
             _id = " & ".join(
                 re.findall('"(.*?)"', content[match.span()[1] :].split("\n")[0])
             )
-        game = re.sub(r"\s\[.*?\]", "", game)
         ret.append((_id, game))
     return ret
 

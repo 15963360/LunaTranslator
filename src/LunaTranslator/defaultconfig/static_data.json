@@ -1,21 +1,4 @@
 {
-    "themes": [
-        {
-            "name": "PyQtDarkTheme",
-            "file": {
-                "dark": "PyQtDarkTheme/dark.py",
-                "light": "PyQtDarkTheme/light.py",
-                "setting": "PyQtDarkTheme/setting.py"
-            }
-        },
-        {
-            "name": "QTWin11",
-            "file": {
-                "dark": "QTWin11/dark.py",
-                "light": "QTWin11/light.py"
-            }
-        }
-    ],
     "font_type_default": {
         "default": [
             "Segoe UI",
@@ -452,14 +435,6 @@
             "icon": "files/static/llm_icons/deepseek.svg"
         },
         {
-            "vis": "Xiaomi MiMo",
-            "value": "https://api.xiaomimimo.com",
-            "icon": {
-                "dark": "files/static/llm_icons/mimo_dark.svg",
-                "light": "files/static/llm_icons/mimo.svg"
-            }
-        },
-        {
             "vis": "Gemini",
             "value": "https://generativelanguage.googleapis.com",
             "icon": "files/static/llm_icons/gemini.svg"
@@ -521,14 +496,6 @@
             "icon": {
                 "dark": "files/static/llm_icons/xai_dark.svg",
                 "light": "files/static/llm_icons/xai.svg"
-            }
-        },
-        {
-            "vis": "Ollama",
-            "value": "http://127.0.0.1:11434",
-            "icon": {
-                "dark": "files/static/llm_icons/ollama_dark.svg",
-                "light": "files/static/llm_icons/ollama.svg"
             }
         },
         {

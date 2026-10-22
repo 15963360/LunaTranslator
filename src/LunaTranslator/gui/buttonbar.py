@@ -4,7 +4,8 @@ from traceback import print_exc
 import qtawesome, gobject
 from myutils.config import ui_settings
 from myutils.utils import str2rgba
-from myutils.hwnd import getExeIcon, getcurrexe
+from myutils.hwnd import getExeIcon
+from NativeUtils import getcurrexe
 from gui.usefulwidget import (
     resizableframeless,
     load_specific_icon_size,
@@ -337,11 +338,11 @@ class ButtonBar(QFrame):
         if self.v:
             w = self.cntbtn * IconLabelX.h()
             p.setMinimumHeight(max(int(w), 200))
-            p.setMinimumWidth(self.width() * 1)
+            p.setMinimumWidth(self.width() * 1, + ui_settings.get('min_auto_height', 0))
         else:
             w = self.cntbtn * IconLabelX.w()
             p.setMinimumWidth(max(int(w), 200))
-            p.setMinimumHeight(self.height() * 1)
+            p.setMinimumHeight(self.height() * 1 + ui_settings.get('min_auto_height', 0))
 
     def setbuttonsize(self, verticalhorizontal):
 

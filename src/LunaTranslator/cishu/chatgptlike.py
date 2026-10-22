@@ -368,3 +368,7 @@ class chatgptlike(cishubase):
             extrabody,
             apitype,
         )
+
+
+Cishu = chatgptlike
+

@@ -33,6 +33,7 @@ from ctypes.wintypes import (
     MAX_PATH,
 )
 from myutils.config import _TR
+from myutils.wrapper import threader
 from windows import AutoHandle
 from xml.sax.saxutils import escape
 import gobject, os, json, subprocess
@@ -98,6 +99,9 @@ levenshtein_distance.restype = c_size_t
 levenshtein_normalized_similarity = utilsdll.levenshtein_normalized_similarity
 levenshtein_normalized_similarity.argtypes = c_size_t, c_wchar_p, c_size_t, c_wchar_p
 levenshtein_normalized_similarity.restype = c_double
+strnatcmp = utilsdll.strnatcmp
+strnatcmp.argtypes = c_wchar_p, c_wchar_p
+strnatcmp.restype = c_int
 
 
 def distance(s1, s2):
@@ -243,7 +247,7 @@ _ExtractExeIconData.restype = c_bool
 
 def ExtractExeIconData(file, large=False):
 
-    file = windows.check_maybe_unc_file(file)
+    file = CheckMaybeUNCFile(file)
     if not file:
         return False
     ret = []
@@ -298,16 +302,47 @@ SetTheme.argtypes = HWND, c_bool, c_int
 SetCornerNotRound = utilsdll.SetCornerNotRound
 SetCornerNotRound.argtypes = HWND, c_bool, c_bool
 
-_ListProcesses = utilsdll.ListProcesses
-_ListProcesses.argtypes = (c_void_p,)
+_ListProcess = utilsdll.ListProcess
+_ListProcess.argtypes = (LPCWSTR, c_void_p)
 
 
-def ListProcesses():
-    ret: "list[tuple[int, str]]" = []
-    _ListProcesses(
-        CFUNCTYPE(None, DWORD, c_wchar_p)(lambda pid, exe: ret.append((pid, exe)))
+def ListProcess(exe=None):
+    """进程按可执行文件完整路径分组（原 myutils/hwnd.py 的 C++ 版，
+    见 NativeUtils/hwnd.cpp）。exe=None → {完整路径: [pid, ...]}
+    （Windows/Microsoft/WindowsApps 目录下的已过滤）；exe 给定 →
+    该完整路径对应的 pid 列表（无则空）。"""
+    groups = []
+    _ListProcess(
+        exe,
+        CFUNCTYPE(None, c_wchar_p, POINTER(DWORD), DWORD)(
+            lambda name, pids, cnt: groups.append(
+                (name, [pids[i] for i in range(cnt)]))
+        ),
     )
-    return ret
+    if exe is None:
+        return dict(groups)
+    return groups[0][1] if groups else []
+
+
+_MouseSelectWindow = utilsdll.MouseSelectWindow
+_MouseSelectWindow.argtypes = (c_void_p,)
+
+
+def mouseselectwindow(callback):
+    """鼠标点击选窗口：轮询左键按下（GetKeyState 才能检测到高权限
+    应用上的点击）后，取光标处顶层窗口回调 callback(pid, hwnd)；
+    右键点击取消，回调 callback(0, None)。阻塞直至点击，threader
+    丢工作线程。"""
+    @threader
+    def _():
+        _MouseSelectWindow(CFUNCTYPE(None, DWORD, HWND)(callback))
+
+    _()
+
+
+GetProcessListenPort = utilsdll.GetProcessListenPort
+GetProcessListenPort.argtypes = (LPCWSTR,)
+GetProcessListenPort.restype = c_int
 
 
 SetWindowInTaskbar = utilsdll.SetWindowInTaskbar
@@ -344,7 +379,7 @@ _GdiGrabWindow = utilsdll.GdiGrabWindow
 _GdiGrabWindow.argtypes = HWND, c_void_p
 
 _GdiCropImage = utilsdll.GdiCropImage
-_GdiCropImage.argtypes = HWND, c_int, c_int, c_int, c_int, c_void_p
+_GdiCropImage.argtypes = HWND, c_int, c_int, c_int, c_int, c_void_p, c_int
 _GdiCropImage.restype = c_bool
 
 
@@ -362,7 +397,10 @@ def GdiGrabWindow(hwnd):
     return ret[0]
 
 
-def GdiCropImage(x1, y1, x2, y2, hwnd=None):
+def GdiCropImage(x1, y1, x2, y2, hwnd=None, curr=-1):
+    """curr：GdiCropImage 的尝试序号——0 仅 HWND、1 仅桌面、-1 自动
+    兜底（HWND 失败落桌面）。指定序号后不再内部兜底，由调用方决定
+    何时落桌面（落桌面前先隐藏自己的窗口）。"""
     ret: "list[bytes]" = []
 
     def cb(ptr, size):
@@ -371,11 +409,134 @@ def GdiCropImage(x1, y1, x2, y2, hwnd=None):
     if windows.GetClassName(hwnd) == "UnityWndClass":
         hwnd = None
     succ: bool = _GdiCropImage(
-        hwnd, x1, y1, x2, y2, CFUNCTYPE(None, POINTER(c_char), c_size_t)(cb)
+        hwnd, x1, y1, x2, y2, CFUNCTYPE(None, POINTER(c_char), c_size_t)(cb), curr
     )
     if not ret:
         return False, None
     return succ, ret[0]
+
+
+_FindSoleOpaqueWindow = utilsdll.FindSoleOpaqueWindow
+_FindSoleOpaqueWindow.argtypes = c_int, c_int, c_int, c_int, DWORD
+_FindSoleOpaqueWindow.restype = HWND
+
+
+def find_sole_opaque_window(x1, y1, x2, y2, exclude_pid):
+    """选区 (x1,y1,x2,y2)（屏幕坐标）可见内容所属的唯一窗口（C++
+    实现，见 NativeUtils/screenshot.cpp 的 FindSoleOpaqueWindow）：按
+    Z 序自顶向下第一个与选区相交的未过滤窗口完全盖住选区则返回它
+    （其下窗口都被挡住，单窗口截图不失真）；部分覆盖（合成画面）或
+    无相交返回 0。"""
+    return int(_FindSoleOpaqueWindow(x1, y1, x2, y2, exclude_pid) or 0)
+
+
+class HRESULT_ERROR(Exception):
+    pass
+
+
+def CHECK_FAILURE(hr, module=None):
+    if windows.FAILED(hr):
+        raise HRESULT_ERROR(WinErrorMessage(hr, module))
+
+
+IsRunningOnWine = utilsdll.IsRunningOnWine
+IsRunningOnWine.restype = c_bool
+
+
+
+# ---- winutils.cpp（原 windows.py 里的多步组合逻辑，C++ 实现） ----
+
+_CheckMaybeUNCFile = utilsdll.CheckMaybeUNCFile
+_CheckMaybeUNCFile.argtypes = c_wchar_p, c_void_p
+_CheckMaybeUNCFile.restype = None
+
+
+def CheckMaybeUNCFile(v):
+    """NT/UNC 设备路径 → 盘符路径（失败返回原值）。"""
+    ret = []
+    _CheckMaybeUNCFile(v, CFUNCTYPE(None, c_wchar_p)(ret.append))
+    return ret[0] if ret else v
+
+
+_GetProcessFileName = utilsdll.GetProcessFileName
+_GetProcessFileName.argtypes = DWORD, c_void_p
+_GetProcessFileName.restype = None
+
+
+def GetProcessFileName(pid):
+    """进程可执行文件路径：递减权限打开进程 + 三级 API 回退 + NT/UNC
+    设备路径换算 + 短路径修补（见 NativeUtils/winutils.cpp）。失败 None。"""
+    ret = []
+    _GetProcessFileName(pid, CFUNCTYPE(None, c_wchar_p)(ret.append))
+    return ret[0] if ret else None
+
+
+_GetCurrentExe = utilsdll.GetCurrentExe
+_GetCurrentExe.argtypes = (c_void_p,)
+
+
+def getcurrexe():
+    """当前进程可执行文件路径（原 myutils/hwnd.py 的 C++ 版）：PyStand
+    打包时优先 LUNA_EXE_NAME 环境变量，否则 GetCurrentProcess 伪句柄
+    直接取路径（免 OpenProcess，见 NativeUtils/winutils.cpp）。失败
+    None。"""
+    ret = []
+    _GetCurrentExe(CFUNCTYPE(None, c_wchar_p)(ret.append))
+    return ret[0] if ret else None
+
+
+_TestInjectable = utilsdll.TestInjectable
+_TestInjectable.restype = c_bool
+# 变参（count 后跟 count 个 pid）：不设 argtypes，ctypes 按 cdecl 变参
+# 逐个直传
+
+
+def test_injectable(*pids):
+    """一组进程是否都能以注入所需权限打开（变参直传 C 侧的
+    TestInjectable，全部 OpenProcess 成功才 True；空组为 True）。"""
+    return _TestInjectable(len(pids), *(c_uint(_) for _ in pids))
+
+
+_WinErrorMessage = utilsdll.WinErrorMessage
+_WinErrorMessage.argtypes = DWORD, c_void_p, c_void_p
+_WinErrorMessage.restype = None
+
+
+def WinErrorMessage(code, module=None):
+    """系统错误码 → 文本（FormatMessageW）。失败返回空串。"""
+    ret = []
+    _WinErrorMessage(code, module, CFUNCTYPE(None, c_wchar_p)(ret.append))
+    return ret[0] if ret else ""
+
+
+ExcludeFromCapture = utilsdll.ExcludeFromCapture
+ExcludeFromCapture.argtypes = (HWND,)
+ExcludeFromCapture.restype = c_bool
+
+
+ClearFromCapture = utilsdll.ClearFromCapture
+ClearFromCapture.argtypes = (HWND,)
+ClearFromCapture.restype = c_bool
+
+
+SetWindowFrameRgn = utilsdll.SetWindowFrameRgn
+SetWindowFrameRgn.argtypes = HWND, c_int, c_int, c_int
+SetWindowFrameRgn.restype = None
+ClearWindowRgn = utilsdll.ClearWindowRgn
+ClearWindowRgn.argtypes = (HWND,)
+
+
+_LCIDToLocaleNameEx = utilsdll.LCIDToLocaleNameEx
+_LCIDToLocaleNameEx.argtypes = DWORD, c_void_p
+_LCIDToLocaleNameEx.restype = c_bool
+
+
+def LCIDToLocaleNameEx(lcid):
+    """失败抛异常（同原 windows.LCIDToLocaleName）。"""
+    ret = []
+    if not _LCIDToLocaleNameEx(lcid, CFUNCTYPE(None, c_wchar_p)(ret.append)):
+        raise Exception(windows.GetLastError())
+    return ret[0]
 
 
 setAeroEffect = utilsdll.setAeroEffect
@@ -607,6 +768,28 @@ webview2_get_userdir_callback = CFUNCTYPE(None, c_wchar_p)
 webview2_get_userdir.argtypes = (webview2_get_userdir_callback,)
 
 
+_WebViewExtensionMessagesEnter = utilsdll.WebViewExtensionMessagesEnter
+_WebViewExtensionMessagesEnter.restype = c_bool
+_WebViewExtensionMessagesExit = utilsdll.WebViewExtensionMessagesExit
+
+
+class _WebViewExtensionMessages:
+    """Wine 11 ignores COWAIT_DISPATCH_WINDOW_MESSAGES used by extension APIs.
+
+    Service only Chromium's internal task windows on the owning STA; pumping
+    Qt events or moving the existing WebView objects to a worker is unsafe.
+    （C++ 实现：NativeUtils/winutils.cpp 的 WebViewExtensionMessagesEnter/Exit，
+    非 Wine 上 Enter 返回 false，本上下文管理器即无操作）"""
+
+    def __enter__(self):
+        self.active = _WebViewExtensionMessagesEnter()
+        return self
+
+    def __exit__(self, *_):
+        if self.active:
+            _WebViewExtensionMessagesExit()
+
+
 class WebView2(AbstractWebView):
 
     @staticmethod
@@ -659,7 +842,7 @@ class WebView2(AbstractWebView):
             # 在共享路径上无法运行
             os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = "--no-sandbox"
         _ = windows.CO_INIT()
-        windows.CHECK_FAILURE(
+        CHECK_FAILURE(
             webview2_create(windows.pointer(self.ptr), parent, transp, loadext)
         )
         self.put_PreferredColorScheme(darklight)
@@ -711,20 +894,24 @@ class WebView2(AbstractWebView):
                 collect.append((_, _1, _2))
 
             _ = webview2_list_ext_CALLBACK_T(__)
-            windows.CHECK_FAILURE(webview2_ext_list(_))
+            with _WebViewExtensionMessages():
+                CHECK_FAILURE(webview2_ext_list(_))
             return collect
 
         @staticmethod
         def Enable(_id, enable):
-            windows.CHECK_FAILURE(webview2_ext_enable(_id, enable))
+            with _WebViewExtensionMessages():
+                CHECK_FAILURE(webview2_ext_enable(_id, enable))
 
         @staticmethod
         def Remove(_id):
-            windows.CHECK_FAILURE(webview2_ext_rm(_id))
+            with _WebViewExtensionMessages():
+                CHECK_FAILURE(webview2_ext_rm(_id))
 
         @staticmethod
         def Add(path):
-            windows.CHECK_FAILURE(webview2_ext_add(path))
+            with _WebViewExtensionMessages():
+                CHECK_FAILURE(webview2_ext_add(path))
 
         @staticmethod
         def Manifest_Info(extid: str):
@@ -798,7 +985,7 @@ class EdgeHtml(AbstractWebView):
         self.binds = {}
         self.html_limit = 1572834
         _ = windows.CO_INIT()
-        windows.CHECK_FAILURE(edgehtml_new(windows.pointer(self.ptr), parent, transp))
+        CHECK_FAILURE(edgehtml_new(windows.pointer(self.ptr), parent, transp))
         self._keepref = web_notify_callback_t(self.__web_notify_callback)
         edgehtml_set_notify_callback(self.ptr, self._keepref)
         self._init()
@@ -856,7 +1043,7 @@ class MSHTML(AbstractWebView):
         self.html_limit = 1
         self.browser = unique_ptr(None, webview_destroy)
         html_new(int(parent), pointer(self.browser))
-        if gobject.is_running_on_wine() or (
+        if IsRunningOnWine() or (
             html_version() < 10001
         ):  # ie10之前，sethtml会乱码
             self.html_limit = 0
@@ -900,7 +1087,7 @@ class loopbackrecorder:
     def __init__(self) -> None:
         self.data = None
         self.ptr = c_void_p()
-        windows.CHECK_FAILURE(StartCaptureAsync(pointer(self.ptr)))
+        CHECK_FAILURE(StartCaptureAsync(pointer(self.ptr)))
 
 
 # LoopBack

@@ -7,12 +7,14 @@ from myutils.wrapper import Singleton
 from gui.inputdialog import autoinitdialog_items, autoinitdialog
 from gui.rcdownload import resourcewidget, resourcewidget2
 from gui.usefulwidget import (
-    LGroupBox,
+    GroupCardWidget,
     VisLFormLayout,
     makescrollgrid,
     D_getsimpleswitch,
     listediter,
     D_getIconButton,
+    getIconButton,
+    IconButton,
     LPushButton,
     NQGroupBox,
     getsmalllabel,
@@ -20,6 +22,7 @@ from gui.usefulwidget import (
     D_getcolorbutton,
     MyInputDialog,
     getboxlayout,
+    getboxwidget,
     getsimpleswitch,
     D_getsimplecombobox,
     getspinbox,
@@ -28,6 +31,9 @@ from gui.usefulwidget import (
     KeySequenceEdit,
     check_grid_append,
     automakegrid,
+    makegrid,
+    makegroupingrid,
+    makecardrow,
     request_delete_ok,
     DarkLightAutoResetIconHelper,
     FocusFontCombo,
@@ -36,6 +42,7 @@ from gui.usefulwidget import (
 )
 import qtawesome
 from gui.dynalang import LFormLayout, LLabel, LAction, LDialog
+from gui.fluent.expander import ExExpander
 from gui.rendertext.tooltipswidget import tooltipssetting
 from gui.showword import cishusX
 from gui.setting.cishucommunity import CommunityCishuDialog
@@ -187,7 +194,26 @@ def initinternal(self, names):
     cishugrid = []
     line = []
     i = 0
-    for cishu in names:
+
+    def _gear(cishu, which, reloadcb):
+        items = autoinitdialog_items(globalconfig["cishu"][cishu])
+
+        def __(cishu, _which=which):
+            autoinitdialog(
+                self,
+                globalconfig["cishu"][cishu]["args"],
+                dynamiccishuname(cishu),
+                800,
+                items,
+                _which,
+                cishu,
+                callback=reloadcb,
+            )
+
+        return D_getIconButton(callback=functools.partial(__, cishu))
+
+    # MDict（离线）融入列表排最前：其下载图标展开卡顶的资源下载面板
+    for cishu in ["mdict"] + list(names):
         which = cishuexits(cishu)
         if not which:
             continue
@@ -196,55 +222,42 @@ def initinternal(self, names):
             functools.partial(getrenameablellabel, cishu, self),
             D_getsimpleswitch(globalconfig["cishu"][cishu], "use", callback=reloadcb),
         ]
-        if "args" in globalconfig["cishu"][cishu]:
-
-            items = autoinitdialog_items(globalconfig["cishu"][cishu])
-            items[-1]["callback"] = reloadcb
-
-            def __(cishu, _which=which):
-                autoinitdialog(
-                    self,
-                    globalconfig["cishu"][cishu]["args"],
-                    dynamiccishuname(cishu),
-                    800,
-                    items,
-                    _which,
-                    cishu,
-                )
-
-            line += [
-                D_getIconButton(callback=functools.partial(__, cishu)),
-            ]
+        if "args" in globalconfig["cishu"][cishu] and cishu != "mdict":
+            line += [_gear(cishu, which, reloadcb), "", ""]
         elif cishu == "selfbuild":
             line += [
                 D_getIconButton(
                     callback=lambda: selectdebugfile("selfbuild_cishu.py"),
                     icon="fa.edit",
-                )
+                ),
+                "", ""
             ]
+        elif cishu == "mdict":
+            # MDict 也有 args，但走本分支：设置之外再挂下载图标
+            dlbtn = IconButton(
+                icon="fa.download",
+                checkable=True,
+                checkablechangecolor=False,
+                tips="资源下载",
+            )
+            dlbtn.clicked.connect(
+                lambda checked: self._mdictdlpanel.setVisible(checked)
+            )
+            line += [_gear(cishu, which, reloadcb), dlbtn, ""]
         else:
-            line += [""]
+            line += ["", "", ""]
         if i % 3 == 2:
+            if line[-1] == "":
+                line.pop(-1)
             cishugrid.append(line)
             line = []
-        else:
-            line += [""]
         i += 1
     if len(line):
         cishugrid.append(line)
     if cishugrid:
-        cishugrid[-1] += [""] * (4 + 4 + 3 - len(cishugrid[-1]))
+        cishugrid[-1] += [""] * (5 + 5 + 4 - len(cishugrid[-1]))
     check_grid_append(cishugrid)
     return cishugrid
-
-
-def clickcallback2(l: list, lay: VisLFormLayout, checked):
-    if not l:
-        l.append(0)
-        lay.addRow(resourcewidget2())
-        return
-
-    lay.setRowVisible(1, checked)
 
 
 def clickcallback(l: list, lay: VisLFormLayout, checked):
@@ -257,15 +270,16 @@ def clickcallback(l: list, lay: VisLFormLayout, checked):
 
 
 def fenciqisettings(self):
-    box = LGroupBox(self)
-    box.setTitle("分词器")
-    lay = VisLFormLayout(box)
+    box = GroupCardWidget("分词器", parent=self)
+    lay = VisLFormLayout(box.contentWidget())
+    # 表单边距归零：内容与标题对齐在卡片统一的 12px 内边距上
+    lay.setContentsMargins(0, 0, 0, 0)
+    box.setContentLayout(lay)
     l1 = QHBoxLayout()
 
     lay.addRow(l1)
     l1.addWidget(QLabel("Mecab"))
     items = autoinitdialog_items(globalconfig["hirasetting"]["mecab"])
-    items[-1]["callback"] = gobject.base.startmecab
     _3 = D_getIconButton(
         callback=functools.partial(
             autoinitdialog,
@@ -274,6 +288,7 @@ def fenciqisettings(self):
             "Mecab",
             800,
             items,
+            callback=gobject.base.startmecab,
         ),
     )
     l1.addWidget(_3())
@@ -287,58 +302,48 @@ def fenciqisettings(self):
     return box
 
 
-def mdictsettings(self):
-    box = LGroupBox(self)
-    box.setTitle("离线")
-    lay = VisLFormLayout(box)
-    l1 = QHBoxLayout()
-
-    lay.addRow(l1)
-    l1.addWidget(getrenameablellabel("mdict", self))
-    reloadcb = functools.partial(gobject.base.startxiaoxueguan, "mdict")
-    l1.addWidget(
-        getsimpleswitch(globalconfig["cishu"]["mdict"], "use", callback=reloadcb)
-    )
-    items = autoinitdialog_items(globalconfig["cishu"]["mdict"])
-    items[-1]["callback"] = reloadcb
-    _3 = D_getIconButton(
-        callback=functools.partial(
-            autoinitdialog,
-            self,
-            globalconfig["cishu"]["mdict"]["args"],
-            dynamiccishuname("mdict"),
-            800,
-            items,
-        ),
-    )
-    l1.addWidget(_3())
-    l1.addStretch(1)
-    btn = LPushButton("资源下载")
-    btn.setCheckable(True)
-    reflist = []
-    btn.clicked.connect(functools.partial(clickcallback2, reflist, lay))
-    l1.addWidget(btn)
-    l1.addStretch(8)
+def cishunamelist(self, online):
+    """辞书卡内容：顶部 MDict 资源下载面板（初始隐藏，MDict 词条的下载
+    图标展开，同 llama.cpp 大模型 的下载行），下方全部辞书网格——MDict
+    融入在线辞书排最末。cishugridinternal 供社区辞书安装后
+    rebuildcishugrid 重建。"""
+    box = QWidget()
+    vlay = QVBoxLayout(box)
+    vlay.setContentsMargins(0, 0, 0, 0)
+    vlay.setSpacing(8)
+    dlpanel = resourcewidget2("MDict")
+    dlpanel.setVisible(False)
+    self._mdictdlpanel = dlpanel
+    vlay.addWidget(dlpanel)
+    gridw = QWidget()
+    grid = QGridLayout(gridw)
+    grid.setContentsMargins(0, 0, 0, 0)
+    vlay.addWidget(gridw)
+    automakegrid(grid, initinternal(self, online))
+    self.cishugridinternal = grid
     return box
 
 
-class fontsettings(NQGroupBox):
+def _createnewtextfontcom(key, df):
+    def _f(key, x):
+        globalconfig[key] = x
+        gobject.base.translation_ui.translate_text.setfontstyle()
 
-    def createtextfontcom(self, key, df):
-        def _f(key, x):
-            globalconfig[key] = x
-            gobject.base.translation_ui.translate_text.setfontstyle()
+    font_comboBox = FocusFontCombo(sizeX=True)
+    font_comboBox.setCurrentFont(QFont(globalconfig.get(key, df)))
+    font_comboBox.currentTextChanged.connect(functools.partial(_f, key))
+    return font_comboBox
 
-        font_comboBox = FocusFontCombo(sizeX=True)
-        font_comboBox.setCurrentFont(QFont(globalconfig.get(key, df)))
-        font_comboBox.currentTextChanged.connect(functools.partial(_f, key))
-        return font_comboBox
 
-    def __init__(self, parent):
-        super().__init__(parent)
-        form = LFormLayout(self)
-        form.addRow(
+def fontsettings(parent):
+    """字体折叠卡：「跟随默认」开关放在折叠条上；跟随默认时子项禁用。"""
+    exp = ExExpander(content_pad=True)
+
+    # 子项 1：相对大小（标题在左、spin 在右端）
+    sizerow = getboxwidget(
+        [
             "相对大小",
+            1,
             getspinbox(
                 0.1,
                 1,
@@ -349,55 +354,68 @@ class fontsettings(NQGroupBox):
                 callback=gobject.base.translation_ui.translate_text.setfontstyle,
                 default=0.5,
             ),
-        )
-        form2 = VisLFormLayout()
-        form.addRow("字体", form2)
-        form2.addRow(
-            getboxlayout(
-                [
-                    getsmalllabel("跟随默认"),
-                    getsimpleswitch(
-                        globalconfig,
-                        "kanafontfollowdefault",
-                        default=True,
-                        callback=lambda x: (
-                            form2.setRowVisible(1, not x),
-                            gobject.base.translation_ui.translate_text.setfontstyle(),
-                        ),
-                    ),
-                    "",
-                ]
-            )
-        )
-        form2.addRow(
-            getboxlayout(
-                [
-                    self.createtextfontcom(
-                        "kanafont",
-                        globalconfig.get(
-                            "fonttype", gobject.tempconfig.get("fonttype", "")
-                        ),
-                    ),
-                    getIconSwitch(
-                        globalconfig,
-                        "kanabold",
-                        callback=gobject.base.translation_ui.translate_text.setfontstyle,
-                        tips="加粗",
-                        default=globalconfig.get("showbold", False),
-                        icon="fa.bold",
-                    ),
-                    getIconSwitch(
-                        globalconfig,
-                        "kanaitalic",
-                        callback=gobject.base.translation_ui.translate_text.setfontstyle,
-                        tips="倾斜",
-                        default=globalconfig.get("showitalic", False),
-                        icon="fa.italic",
-                    ),
-                ]
+        ]
+    )
+    # 子项 2：字体（combo + 加粗/倾斜）
+    fontrow = getboxwidget(
+        [
+            "字体",
+            1,
+            _createnewtextfontcom(
+                "kanafont",
+                globalconfig.get("fonttype", gobject.tempconfig.get("fonttype", "")),
             ),
-        )
-        form2.setRowVisible(1, not globalconfig.get("kanafontfollowdefault", True))
+            getIconSwitch(
+                globalconfig,
+                "kanabold",
+                callback=gobject.base.translation_ui.translate_text.setfontstyle,
+                tips="加粗",
+                default=globalconfig.get("showbold", False),
+                icon="fa.bold",
+            ),
+            getIconSwitch(
+                globalconfig,
+                "kanaitalic",
+                callback=gobject.base.translation_ui.translate_text.setfontstyle,
+                tips="倾斜",
+                default=globalconfig.get("showitalic", False),
+                icon="fa.italic",
+            ),
+        ]
+    )
+    rows = [sizerow, fontrow]
+
+    def __follow(x):
+        # 跟随默认（x=True）时子项禁用
+        for r in rows:
+            r.setEnabled(not x)
+        gobject.base.translation_ui.translate_text.setfontstyle()
+
+    __follow(globalconfig.get("kanafontfollowdefault", True))
+
+    followswitch = getsimpleswitch(
+        globalconfig,
+        "kanafontfollowdefault",
+        default=True,
+        callback=__follow,
+    )
+    header = QWidget()
+    hlay = QHBoxLayout(header)
+    hlay.setContentsMargins(0, 12, 0, 12)
+    hlay.setSpacing(8)
+    titlelabel = LLabel("字体")
+    titlefont = titlelabel.font()
+    titlefont.setPixelSize(15)
+    titlelabel.setFont(titlefont)
+    hlay.addWidget(titlelabel)
+    hlay.addStretch(1)
+    hlay.addWidget(getsmalllabel("跟随默认")())
+    hlay.addWidget(followswitch)
+    exp.setHeaderWidget(header)
+
+    exp.addContentWidget(sizerow)
+    exp.addContentWidget(fontrow)
+    return exp
 
 
 def _opencommunitycishu(self):
@@ -415,14 +433,7 @@ def _headercishubuttons(self):
     w = QWidget()
     lay = QHBoxLayout(w)
     lay.setContentsMargins(0, 0, 0, 0)
-    btns = [
-        D_getdoclink("internaldict.html")(),
-        D_getIconButton(
-            callback=functools.partial(_opencommunitycishu, self),
-            icon="fa.download",
-            tips="社区辞书",
-        )(),
-    ]
+    btns = [D_getdoclink("internaldict.html")()]
     for b in btns:
         lay.addWidget(b)
 
@@ -444,16 +455,7 @@ def setTabcishu_l(self):
         widget=functools.partial(_headercishubuttons, self),
         type="grid",
         grid=[
-            [(functools.partial(mdictsettings, self), 0)],
-            [
-                dict(
-                    title="在线",
-                    type="grid",
-                    parent=self,
-                    internallayoutname="cishugridinternal",
-                    grid=initinternal(self, online),
-                )
-            ],
+            [(functools.partial(cishunamelist, self, online), 0)],
         ],
     )
 
@@ -464,6 +466,56 @@ def setTabcishu_l(self):
             functools.partial(globalconfig["wordclickkbtrigger"].__setitem__, key)
         )
         return edit
+
+    def __fenciexpander(
+        title,
+        switch,
+        trailing=None,
+        grid=(),
+        switchlabel=None,
+        leading=None,
+        afterswitch=None,
+        content=None,
+    ):
+        """折叠卡（同 LICENSE 的 ExExpander）：标题 +（doclink 紧随）+ 开关（折叠按钮左边）。"""
+        # content= 子项面板形式时内容右侧让出折叠按钮区（60px）
+        exp = ExExpander(content_pad=content is not None)
+        header = QWidget()
+        hlay = QHBoxLayout(header)
+        # 同 LICENSE：HeaderButton 自带左边距与 chevron 预留区，只留上下边距
+        hlay.setContentsMargins(0, 12, 0, 12)
+        hlay.setSpacing(8)
+        titlelabel = LLabel(title)
+        titlefont = titlelabel.font()
+        titlefont.setPixelSize(15)
+        titlelabel.setFont(titlefont)
+        hlay.addWidget(titlelabel)
+        if leading is not None:
+            # doclink 等紧随标题
+            if callable(leading):
+                leading = leading()
+            if leading is not None:
+                hlay.addWidget(leading)
+        hlay.addStretch(1)
+        if trailing is not None:
+            hlay.addWidget(trailing)
+        if switchlabel is not None:
+            hlay.addWidget(getsmalllabel(switchlabel)())
+        hlay.addWidget(switch)
+        if afterswitch is not None:
+            # 开关右边的挂件（如注音颜色按钮）
+            if callable(afterswitch):
+                afterswitch = afterswitch()
+            if afterswitch is not None:
+                hlay.addWidget(afterswitch)
+        exp.setHeaderWidget(header)
+        if content is not None:
+            # 每个 widget 一个独立子项面板（同 代理设置 的多行子项）
+            for w in content:
+                exp.addContentWidget(w)
+        else:
+            exp.addContentWidget(makegrid(list(grid)))
+        return exp
 
     zhuyin = dict(
         title="注音",
@@ -511,152 +563,144 @@ def setTabcishu_l(self):
                     callback=lambda x: self.fenyinsettings.layout().setRowVisible(1, x),
                 ),
             ],
+            # 字体折叠卡（跟随默认在折叠条上）
             [(functools.partial(fontsettings, self), 0)],
         ),
     )
 
-    def showhidebutton(idx):
-        return getIconSwitch(
-            icon="fa.gear",
-            checkablechangecolor=False,
-            callback=lambda x: self.triggerfuncs.layout().setRowVisible(idx, x),
-        )
-
-    def manysettings(title, k, k2, extra=None, canhover=True):
-        grid = [
-            [
-                "触发方式",
-                D_getsimplecombobox(
-                    ["左键点击", "右键点击", "中键点击", "鼠标悬停"][
-                        : (4 if canhover else 3)
-                    ],
-                    globalconfig,
-                    k=k,
-                    internal=["left", "right", "mid", "hover"][
-                        : (4 if canhover else 3)
-                    ],
-                    default="left",
-                    callback=gobject.base.translation_ui.translate_text.showhideclick,
-                ),
-                "",
-                getsmalllabel("需要键盘按下"),
-                D_getsimpleswitch(
-                    globalconfig["wordclickkbtriggerneed"],
-                    k2,
-                    default=False,
-                ),
-                functools.partial(_getkeys, k2),
-            ],
-            [
-                "使用单词原型",
-                D_getsimpleswitch(
-                    globalconfig["usewordoriginfor"],
-                    k2,
-                    default=False,
-                ),
-            ],
-        ]
-        if extra:
-            grid[-1] += [getsmalllabel("")] + extra
-        grid[-1] += [""]
-        return dict(title=title, type="form", grid=grid)
-
-    triggerfuncs = [
-        [
-            "显示详细信息",
-            D_getsimpleswitch(
-                globalconfig,
-                "word_hover_show_word_info",
-                callback=lambda _: (
-                    gobject.base.translation_ui.translate_text.set_word_hover_show_word_info(
-                        _
+    def manysettings(k, k2, extra=None, canhover=True):
+        """触发设置子项面板列表（标题在左、控件在右端）。
+        extra：附加的 [标题, 控件...] 行。"""
+        rows = [
+            getboxwidget(
+                [
+                    "触发方式",
+                    1,
+                    D_getsimplecombobox(
+                        ["左键点击", "右键点击", "中键点击", "鼠标悬停"][
+                            : (4 if canhover else 3)
+                        ],
+                        globalconfig,
+                        k=k,
+                        internal=["left", "right", "mid", "hover"][
+                            : (4 if canhover else 3)
+                        ],
+                        default="left",
+                        callback=gobject.base.translation_ui.translate_text.showhideclick,
                     ),
-                    gobject.base.translation_ui.translate_text.showhideclick(_),
+                ]
+            ),
+            getboxwidget(
+                [
+                    "需要键盘按下",
+                    1,
+                    D_getsimpleswitch(
+                        globalconfig["wordclickkbtriggerneed"],
+                        k2,
+                        default=False,
+                    ),
+                    functools.partial(_getkeys, k2),
+                ]
+            ),
+            getboxwidget(
+                [
+                    "使用单词原型",
+                    1,
+                    D_getsimpleswitch(
+                        globalconfig["usewordoriginfor"],
+                        k2,
+                        default=False,
+                    ),
+                ]
+            ),
+        ]
+        # extra：附加子项（标题在左、控件在右端）
+        for _r in extra or []:
+            rows.append(getboxwidget([_r[0], 1] + list(_r[1:])))
+        return rows
+
+    # ---- 触发功能：四个独立折叠卡（不再嵌在“触发功能”分组下） ----
+    hoverinfoexp = __fenciexpander(
+        "显示详细信息",
+        getsimpleswitch(
+            globalconfig,
+            "word_hover_show_word_info",
+            callback=lambda _: (
+                gobject.base.translation_ui.translate_text.set_word_hover_show_word_info(
+                    _
                 ),
-                default=False,
+                gobject.base.translation_ui.translate_text.showhideclick(_),
             ),
-            functools.partial(showhidebutton, 2),
-            "",
-            "",
-            "复制到剪贴板",
-            D_getsimpleswitch(
-                globalconfig,
-                "usecopyword",
-                callback=gobject.base.translation_ui.translate_text.showhideclick,
-                default=False,
+            default=False,
+        ),
+        content=[
+            getboxwidget(["触发方式", 1, "鼠标悬停"]),
+            makegroupingrid(
+                dict(
+                    title="样式",
+                    type="form",
+                    grid=tooltipssetting(self),
+                )
             ),
-            functools.partial(showhidebutton, 3),
-            "",
-            "",
-            "",
         ],
-        [
-            "查词",
-            D_getsimpleswitch(
-                globalconfig,
-                "usesearchword",
-                callback=gobject.base.translation_ui.translate_text.showhideclick,
-                default=True,
-            ),
-            functools.partial(showhidebutton, 4),
-            D_getIconButton(
-                lambda: gobject.base.searchwordW.showsignal.emit(),
-                icon="fa.search",
-                tips="查词",
-            ),
-            "",
-            "查词_在小窗口中",
-            D_getsimpleswitch(
-                globalconfig,
-                "usesearchword_S",
-                callback=gobject.base.translation_ui.translate_text.showhideclick,
-                default=False,
-            ),
-            functools.partial(showhidebutton, 5),
-        ],
-        [
-            dict(
-                title="显示详细信息",
-                type="form",
-                grid=[
-                    ["触发方式", "鼠标悬停"],
-                    [
-                        dict(
-                            title="样式",
-                            type="form",
-                            grid=tooltipssetting(self),
-                        )
-                    ],
-                ],
-            )
-        ],
-        [
-            manysettings(
-                "复制到剪贴板", "copyword_mousetrigger", "copyword", canhover=False
-            )
-        ],
-        [
-            manysettings(
-                "查词",
-                "searchword_mousetrigger",
-                "searchword",
+    )
+    copywordexp = __fenciexpander(
+        "复制到剪贴板",
+        getsimpleswitch(
+            globalconfig,
+            "usecopyword",
+            callback=gobject.base.translation_ui.translate_text.showhideclick,
+            default=False,
+        ),
+        content=manysettings(
+            "copyword_mousetrigger",
+            "copyword",
+            canhover=False,
+        ),
+    )
+    searchwordexp = __fenciexpander(
+        "查词",
+        getsimpleswitch(
+            globalconfig,
+            "usesearchword",
+            callback=gobject.base.translation_ui.translate_text.showhideclick,
+            default=True,
+        ),
+        trailing=getIconButton(
+            lambda: gobject.base.searchwordW.showsignal.emit(),
+            icon="fa.search",
+            tips="查词",
+        ),
+        content=manysettings(
+            "searchword_mousetrigger",
+            "searchword",
+            [
                 [
-                    getsmalllabel("辞书显示顺序"),
+                    "辞书显示顺序",
                     D_getIconButton(functools.partial(vistranslate_rank, self)),
                 ],
-                canhover=False,
-            )
-        ],
-        [
-            manysettings(
-                "查词_在小窗口中",
-                "searchword_S_mousetrigger",
-                "searchword_S",
+            ],
+            canhover=False,
+        ),
+    )
+    searchword_Sexp = __fenciexpander(
+        "查词_在小窗口中",
+        getsimpleswitch(
+            globalconfig,
+            "usesearchword_S",
+            callback=gobject.base.translation_ui.translate_text.showhideclick,
+            default=False,
+        ),
+        content=manysettings(
+            "searchword_S_mousetrigger",
+            "searchword_S",
+            [
                 [
-                    getsmalllabel("辞书显示顺序"),
+                    "辞书显示顺序",
                     D_getIconButton(functools.partial(vistranslate_rank, self)),
-                    getsmalllabel(""),
-                    getsmalllabel("不使用的辞书"),
+                ],
+                [
+                    "不使用的辞书",
                     D_getIconButton(
                         callback=functools.partial(
                             listediter,
@@ -670,11 +714,39 @@ def setTabcishu_l(self):
                         tips="不使用的辞书",
                     ),
                 ],
-                canhover=True,
-            )
-        ],
-    ]
+            ],
+            canhover=True,
+        ),
+    )
+    # 语法加亮：一行卡片，switch 在最右边
+    yufajialiang = makecardrow(
+        "语法加亮",
+        D_getIconButton(
+            icon="fa.paint-brush",
+            callback=lambda: multicolorset(self),
+            tips="语法加亮_颜色设置",
+        ),
+        D_getcolorbutton(
+            self,
+            globalconfig,
+            "hovercolor",
+            callback=gobject.base.translation_ui.translate_text.sethovercolor,
+            alpha=True,
+            default="#80000000",
+            tips="鼠标悬停_颜色设置",
+        ),
+        getsimpleswitch(
+            globalconfig,
+            "show_fenci",
+            callback=lambda _: (
+                gobject.base.translation_ui.translate_text.setcolorstyle(),
+                gobject.base.translation_ui.translate_text.showhideclick(_),
+            ),
+            default=True,
+        ),
+    )
 
+    # 分词卡：语法加亮一行卡 + 四个触发功能折叠卡（每行两个）
     fenci = dict(
         title="分词",
         type="grid",
@@ -682,43 +754,9 @@ def setTabcishu_l(self):
         name="fencisettings",
         enable=globalconfig.get("isshowrawtext", True),
         grid=(
-            [
-                getsmalllabel("语法加亮"),
-                D_getsimpleswitch(
-                    globalconfig,
-                    "show_fenci",
-                    callback=lambda _: (
-                        gobject.base.translation_ui.translate_text.setcolorstyle(),
-                        gobject.base.translation_ui.translate_text.showhideclick(_),
-                    ),
-                    default=True,
-                ),
-                D_getIconButton(
-                    icon="fa.paint-brush",
-                    callback=lambda: multicolorset(self),
-                    tips="语法加亮_颜色设置",
-                ),
-                D_getcolorbutton(
-                    self,
-                    globalconfig,
-                    "hovercolor",
-                    callback=gobject.base.translation_ui.translate_text.sethovercolor,
-                    alpha=True,
-                    default="#80000000",
-                    tips="鼠标悬停_颜色设置",
-                ),
-                "",
-            ],
-            [
-                dict(
-                    title="触发功能",
-                    type="grid",
-                    parent=self,
-                    name="triggerfuncs",
-                    hiderows=[2, 3, 4, 5],
-                    grid=triggerfuncs,
-                )
-            ],
+            [(yufajialiang, 0)],
+            [hoverinfoexp], [copywordexp],
+            [searchwordexp], [searchword_Sexp],
         ),
     )
 

@@ -140,6 +140,8 @@ void patch_fun_ptrs_patch_once()
 }
 void solvefont(HookParam hp)
 {
+  if (!wcslen(commonsharedmem->fontFamily))
+    return;
   if (hp.embed_hook_font & DISABLE_FONT_SWITCH)
   {
     Hijack::Disable_Font_Switch = true;
@@ -156,7 +158,6 @@ void solvefont(HookParam hp)
   if (auto current_patch_fun = patch_fun.exchange(nullptr))
   {
     current_patch_fun();
-    dont_detach = true;
   }
   patch_fun_ptrs_patch_once();
 }
@@ -276,8 +277,13 @@ bool checktranslatedok(TextBuffer buff)
 bool TextHook::waitfornotify(TextBuffer *buff, ThreadParam tp)
 {
   auto hostcodepage = hp.codepage ? hp.codepage : (commonsharedmem->codepage ? commonsharedmem->codepage : hp.detectedCodepage);
-  if (hp.isAscii() && (hostcodepage == 0))
-    return false;
+  if (hp.isAscii() && !hostcodepage)
+  {
+    if (all_ascii(buff->viewA()))
+      hostcodepage = CP_UTF8;
+    else
+      return false;
+  }
   if (commonsharedmem->clearText)
   {
     if (hp.isAscii() && (hostcodepage == 932))

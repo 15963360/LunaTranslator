@@ -12,7 +12,7 @@
 一部のボタンには2つのアイコンがあり、2つの異なる状態を示します。一部のボタンには1つのアイコンしかありませんが、異なる色を使用して異なる状態を表します。
 :::
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"> 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> 
 
 <style>
     i{
@@ -32,18 +32,18 @@
 
     たとえば、現在のモードがOCRの場合、再度OCRを実行します。
 
-1. #### <i class="fa fa-forward"></i> <i class="btnstatus2 fa fa-forward"></i> オートモード {#anchor-automodebutton}
+1. #### <i class="fa fa-forward"></i> <i class="btnstatus2 fa fa-play"></i> オートモード {#anchor-automodebutton}
     実際の意味は、現在のテキスト入力ソースからの自動読み取りを一時停止/再開することです。
 
     たとえば、現在のモードがHOOKの場合、ゲームテキストの読み取りを一時停止します。現在のモードがOCRの場合、自動画像認識を一時停止します。現在のモードがクリップボードモードの場合、クリップボードの自動読み取りを一時停止します。
 
 1. #### <i class="fa fa-gear"></i> <i class="fa fa-icon fa-rotate-right"></i> 設定を開く {#anchor-setting}
     該当なし
-1. #### <i class="fa fa-file"></i> <i class="fa fa-icon fa-rotate-right"></i> クリップボードから読み込み {#anchor-copy_once}
+1. #### <i class="fa fa-file-o"></i> <i class="fa fa-icon fa-rotate-right"></i> クリップボードから読み込み {#anchor-copy_once}
     実際の意味は、現在のデフォルトのテキスト入力ソースに関係なく、クリップボードから1回テキストを読み取り、後続の翻訳/tts/...プロセスに渡すことです。
 
     右クリックすると、読み込んだテキストが現在のテキストの後に追加されます。
-1. #### <i class="fa fa-futbol"></i> <i class="fa fa-icon fa-rotate-right"></i> ゲーム設定 {#anchor-open_game_setting}
+1. #### <i class="fa fa-futbol-o"></i> <i class="fa fa-icon fa-rotate-right"></i> ゲーム設定 {#anchor-open_game_setting}
     HOOKモードでゲームに接続している場合、またはOCRモードでゲームウィンドウにバインドしている場合、このボタンを使用して現在のゲームの設定ウィンドウを直接開くことができます。
 1. #### <i class="fa fa-mouse-pointer"></i> <i class="btnstatus2 fa fa-mouse-pointer"></i> マウス透過 {#anchor-mousetransbutton}
     このボタンを有効にすると、翻訳ウィンドウはマウスクリックに反応せず、クリックイベントを下層のウィンドウに渡します。
@@ -52,7 +52,7 @@
 
     マウスが**マウススルーウィンドウボタンとその左右の1つのボタンの領域**に移動すると、自動的にスルーを終了してツールボタンを使用できます。領域外に移動すると、自動的にスルーが復元されます。
 
-1. #### <i class="fa fa-lightbulb"></i> <i class="btnstatus2 fa fa-lightbulb"></i> ウィンドウの背景を透明にする {#anchor-backtransbutton}
+1. #### <i class="fa fa-lightbulb-o"></i> <i class="btnstatus2 fa fa-lightbulb-o"></i> ウィンドウの背景を透明にする {#anchor-backtransbutton}
     このボタンの機能は、翻訳ウィンドウの不透明度をワンクリックで0に切り替えることです。不透明度が0の場合、マウスはウィンドウを透過します。
 
     
@@ -80,17 +80,21 @@
     OCRモードでは、OCRエリアを選択するか、OCRエリアを変更するか、`OCR設定` -> `その他` -> `複数エリアモード`を有効にして新しいOCRエリアを追加します。
 
     右ボタンを押すと、選択されたすべての範囲がクリアされ、新しいエリアが追加されます。
-1. #### <i class="fa fa-square"></i> <i class="fa fa-icon fa-rotate-right"></i> 範囲枠の表示/非表示 {#anchor-hideocrrange}
+1. #### <i class="fa fa-square-o"></i> <i class="fa fa-icon fa-rotate-right"></i> 範囲枠の表示/非表示 {#anchor-hideocrrange}
     **このボタンはOCRモードでのみ使用可能です**
 
     OCR範囲が選択されていない場合、このボタンを使用してOCR範囲を表示し、最後に選択されたOCRに自動的に設定されます。
 
     右ボタンを押すと、選択されたすべての範囲がクリアされます。
-1. #### <i class="fa fa-crop"></i> <i class="fa fa-icon fa-rotate-right"></i> OCRを実行 {#anchor-ocr_once}
+1. #### <i class="fa fa-crop"></i> <i class="fa fa-icon fa-rotate-right"></i> OCRを実行 {#anchor-ocr_once_1}
     このボタンは`クリップボードを読み取る`と似ており、現在のデフォルトのテキスト入力ソースに関係なく、最初にOCR範囲を選択し、次に1回OCRを実行し、その後翻訳プロセスを進めます。
 
     このボタンは通常、HOOKモードで選択肢に遭遇したときに、一時的にOCRを使用して選択肢を翻訳するために使用されます。または、OCRモードで一時的に新しい位置を認識するために使用されます。
 
+
+    デフォルトでは、左クリックでOCR結果と翻訳がメインウィンドウに表示され、右クリックでその場に翻訳が表示されます。
+
+    左クリックと右クリックの機能は設定で切り替えられます。
 1. #### <i class="fa fa-spinner"></i> <i class="fa fa-icon fa-rotate-right"></i> OCRを再実行 {#anchor-ocr_once_follow}
     `1回OCRを実行`を使用した後、このボタンを使用して、元の位置で再度OCRを実行し、認識エリアを再選択する必要はありません。
     
@@ -106,7 +110,7 @@
     該当なし
 1. #### <i class="fa fa-times"></i> <i class="fa fa-icon fa-rotate-right"></i> 終了 {#anchor-quit}
     該当なし
-1. #### <i class="fa fa-hand-paper"></i> <i class="fa fa-icon fa-rotate-right"></i> 移動 {#anchor-move}
+1. #### <i class="fa fa-hand-paper-o"></i> <i class="fa fa-icon fa-rotate-right"></i> 移動 {#anchor-move}
     翻訳ウィンドウをドラッグします。
 
     実際には、ボタンバーにボタンがない場合、追加の空白領域があり、自由にドラッグできます。このボタンはドラッグ位置を予約するためのものです。
@@ -159,7 +163,7 @@
     現在プレイしているゲームのメモウィンドウを開く。
 
     左クリックすると、現在のゲームのメモが開きます。右クリックするとグローバルメモが開きます。
-1. #### <i class="fab fa-windows"></i> <i class="btnstatus2 fab fa-windows"></i> ウィンドウをバインド （クリックでキャンセル） {#anchor-bindwindow}
+1. #### <i class="fa fa-windows"></i> <i class="btnstatus2 fa fa-windows"></i> ウィンドウをバインド （クリックでキャンセル） {#anchor-bindwindow}
     **このボタンは非常に重要で、多くの機能はこのボタンを設定してから使用できます**
 
     ゲームウィンドウをバインドした後、`ウィンドウのスケーリング` `ウィンドウのスクリーンショット` `ゲームミュート`、`ゲームウィンドウに従う` -> `ゲームがフォーカスを失ったときにピンを解除`および`ゲームウィンドウの移動と同期`、およびゲーム時間の記録などが利用可能になります。

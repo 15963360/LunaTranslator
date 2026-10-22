@@ -13,20 +13,16 @@
 
 | 操作系统 | 32位 | 64位 |
 | - | - | - |
-| Windows 7 及以上 | <downloadbtn href="https://lunatranslator.org/Resource/DownloadLuna/x86_win7?doc=1"/> | <downloadbtn href="https://lunatranslator.org/Resource/DownloadLuna/x64_win7?doc=1"/> |
-| Windows XP & Vista | <downloadbtn href="https://lunatranslator.org/Resource/DownloadLuna/x86_winxp?doc=1"/> | |
+| Windows 7 及以上 | | <downloadbtn href="https://lunatranslator.org/Resource/DownloadLuna/x64_win7?doc=1"/> |
+| Windows XP 及以上 | <downloadbtn href="https://lunatranslator.org/Resource/DownloadLuna/x86_winxp?doc=1"/> | |
 
 :::
 
 ## 联系作者 {#anchor-support}
 
-如果使用中遇到困难，可以观看[我的B站视频](https://space.bilibili.com/592120404/video)，也欢迎加入[QQ群](https://qm.qq.com/q/mPSu3sG5ri)。
+如果使用中遇到困难，可以观看[我的B站视频](https://space.bilibili.com/592120404/video)，也欢迎加入[QQ群](https://qm.qq.com/q/mPSu3sG5ri) <a href="https://qm.qq.com/q/mPSu3sG5ri" target='_blank'><img src="https://img.shields.io/badge/1059137614-EB1923?style=for-the-badge&logo=qq&logoColor=white&label=QQ&color=5865F2" alt="Discord"></a>
 
-<a href="https://qm.qq.com/q/mPSu3sG5ri" target='_blank'><img src="https://img.shields.io/badge/1059137614-EB1923?style=for-the-badge&logo=qq&logoColor=white&label=QQ&color=5865F2" alt="Discord"></a>
-
-软件维护不易，如果您感觉该软件对你有帮助，欢迎通过[爱发电](https://afdian.com/a/HIllya51)，或微信扫码赞助，您的支持将成为软件长期维护的助力，谢谢~
-
-::: details
+::: details 软件维护不易，如果您感觉该软件对你有帮助，欢迎通过爱发电或微信扫码赞助，您的支持将成为软件长期维护的助力，谢谢~
 <a href="https://afdian.com/a/HIllya51" target='_blank'><img width="200" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png"></a>
 
 <img src='https://image.lunatranslator.org/zh/zan.jpg' style="height: 300px !important;">

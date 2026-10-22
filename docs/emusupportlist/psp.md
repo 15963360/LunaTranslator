@@ -1,5 +1,7 @@
 |  | ID       | Game                |
 | ---- | ---------- | ------------------- |
+|  | ULJS00273 | マリッジロワイヤル  |
+|  | ULJS00203 | ソラユメportable |
 |  | ULJM05555 | Ｌの季節 ダブルポケット |
 |  | ULJM05589 | あかね色に染まる坂ぽ～たぶる |
 |  | NPJH50654 & NPJH50655 | AKB1/149 恋愛総選挙 |
@@ -18,7 +20,6 @@
 |  | ULJM06208 | Starry☆Sky～After Summer～Portable |
 |  | ULJM06209 | Starry☆Sky～After Autumn～Portable |
 |  | ULJM06210 | Starry☆Sky～After Winter～Portable |
-|  | ULJM06104 | アラビアンズ・ロスト |
 |  | ULJM05334 | MEMORIES OFF |
 |  | ULJM06111 | しろくまベルスターズ♪ ハッピー・ホリデーズ！ |
 |  | ULJM06286 | 恋花デイズ |
@@ -95,6 +96,7 @@
 |  | ULJM06064 | アーメン・ノワール ポータブル |
 |  | ULJM05823 | デス・コネクション　ポータブル |
 |  | ULJM06289 | しらつゆの怪 |
+|  | ULJM05973 | ジョーカーの国のアリス～Wonderful Wonder World～ |
 |  | ULJM06216 | ダイヤの国のアリス～Wonderful Wonder World～ |
 |  | ULJM06295 | ダイヤの国のアリス～ Wonderful Mirror World ～ |
 |  | NPJH50872 | ハートの国のアリス～Wonderful Twin World～ |
@@ -198,6 +200,7 @@
 |  | ULJM05399 | 緋色の欠片ポータブル |
 |  | ULJM05741 | ヒイロノカケラ 新玉依姫伝承 ポータブル |
 |  | ULJM05913 | ヒイロノカケラ-Piece of Future- |
+|  | ULJM06104 | アラビアンズ・ロスト |
 |  | NPJH50834 | アラビアンズ・ダウト |
 |  | ULJM06346 | いざ、出陣！恋戦 第二幕 ～甲斐編～ |
 |  | ULJM05931 | AMNESIA |

@@ -10,8 +10,10 @@
 #include "engine32/PixelGameMakerMVplayer.h"
 #include "engine32/LCScript.h"
 #include "engine32/Hug.h"
+#include "engine32/TEANAM.h"
 #include "engine32/Seraphim.h"
 #include "engine32/ArcSystemWorks.h"
+#include "engine32/TERIOS.h"
 #include "engine32/InteractiveNovelEngine.h"
 #include "engine32/AZScript.h"
 #include "engine32/AZSystem.h"
@@ -222,7 +224,7 @@
 #include "engine32/ACTGS.h"
 #include "engine32/e_Erekiteru.h"
 #include "NoEngine.h"
-#include "engines/mono/mono.h"
+#include "engines/unity/unity.h"
 #include "engines/lua/lua51.h"
 #include "engines/python/Renpy.h"
 #include "emulators/ppsspp.h"
@@ -234,7 +236,7 @@ std::vector<ENGINE *> check_engines()
         new VanillawareGC,
         new V8,
         new cef,
-        new mono,
+        new Unity,
         new sakanagl,
         new PONScripter,
         new Patisserie,
@@ -397,6 +399,8 @@ std::vector<ENGINE *> check_engines()
         new Erogos,
         new Silkysveryveryold,
         new gazelle,
+        new TEANAM,
+        new TERIOS,
         // ignore engines
         new oldSystem40ini,
         new AdvPlayerHD,

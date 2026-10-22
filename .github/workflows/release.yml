@@ -75,9 +75,8 @@ jobs:
           tag_name: ${{ needs.loadversion.outputs.version }}
           files: |
             build/signed/LunaTranslator_x86_winxp.zip
-            build/signed/LunaTranslator_x86_win7.zip
             build/signed/LunaTranslator_x64_win7.zip
             build/signed/LunaTranslator_x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: curl http://lunatranslator.org/${{ secrets.LUNA_UPDATE_NOTIFY }}
+      - run: curl https://lunatranslator.org/${{ secrets.LUNA_UPDATE_NOTIFY }}
