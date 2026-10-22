@@ -437,15 +437,17 @@ if __name__ == "__main__":
                     os.makedirs(os.path.dirname(t))
                     shutil.copy(f, t)
     elif sys.argv[1] == "repack":
-        os.makedirs("../signed_exedlls")
+        os.makedirs("../signed_exedlls", exist_ok=True)
         for _dir, _, _fs in os.walk("../signed_exedlls"):
             print(_dir, _fs)
             for _f in _fs:
                 f2 = os.path.join(_dir, _f)
                 shutil.copy(f2, f2.replace("signed_exedlls", "build"))
-        os.makedirs("../signed")
+        os.makedirs("../signed", exist_ok=True)
         os.chdir("../build")
         for d in os.listdir("."):
+            if not os.path.isdir(d):
+                continue
             os.system(
                 rf'"C:\Program Files\7-Zip\7z.exe" a -m0=Deflate -mx9 {d}.zip {d}'
             )
