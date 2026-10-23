@@ -2,7 +2,10 @@ name: Release
 
 on:
   workflow_dispatch:
-  
+
+permissions:
+  contents: write
+
 jobs:
   buildluna:
     uses: ./.github/workflows/buildluna.yml
@@ -70,6 +73,8 @@ jobs:
   release:
     runs-on: windows-latest
     needs: [signandrepack,loadversion]
+    permissions:
+      contents: write
     env:
       UPDATE_NOTIFY: ${{ secrets.LUNA_UPDATE_NOTIFY }}
     steps:
