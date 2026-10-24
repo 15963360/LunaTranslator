@@ -909,8 +909,6 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
         self.checkfunctions = [
             line["checkfunction"] for line in lines if line.get("checkfunction")
         ]
-        okcancels = [line for line in lines if line.get("type") == "okcancel"]
-        lines = [line for line in lines if line.get("type") != "okcancel"]
         outLay = QVBoxLayout(self)
         self.__scrollarea = QScrollArea(self)
         self.__scrollarea.setWidgetResizable(True)
@@ -919,11 +917,16 @@ class autoinitdialog(LDialog, DarkLightAutoResetIconHelper):
         formLayout = VisLFormLayout(formwidget)
         self.__scrollarea.setWidget(formwidget)
         outLay.addWidget(self.__scrollarea, 1)
-        self.__btnwidget = None
-        if okcancels:
-            self.__btnwidget = self.createobject(okcancels[0], dd)
-            if self.__btnwidget:
-                outLay.addWidget(self.__btnwidget)
+        btnbox = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        btnbox.rejected.connect(self.close)
+        btnbox.accepted.connect(functools.partial(self.save, callback))
+        btnbox.button(QDialogButtonBox.StandardButton.Ok).setText(_TR("确定"))
+        btnbox.button(QDialogButtonBox.StandardButton.Cancel).setText(_TR("取消"))
+        self.__btnwidget = btnbox
+        outLay.addWidget(self.__btnwidget)
         self.__qt6fucker: "list[QComboBox]" = []
         hasrank = []
         negarank = []
